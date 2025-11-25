@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ group.Name }} - Devices{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-users text-success"></i> {{ group.Name }}
+            </h1>
+            <p class="text-muted mb-0">{{ device_count }} device{{ device_count|pluralize }} in this group</p>
+        </div>
+        <div>
+            <a href="{% url 'pulseway:groups' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Groups
+            </a>
+        </div>
+    </div>
+
+    <!-- Group Info Card -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5 class="text-success mb-2">
+                        <i class="fas fa-layer-group"></i> Group Information
+                    </h5>
+                    <p class="mb-1"><strong>Name:</strong> {{ group.Name }}</p>
+                    <p class="mb-1"><strong>Description:</strong> {{ group.Notes|default:"No description" }}</p>
+                    <p class="mb-0"><strong>Site:</strong> {{ group.ParentSiteName|default:"N/A" }}</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="h2 mb-0 text-success">{{ device_count }}</div>
+                    <div class="text-muted">Total Devices</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices List -->
+    {% if devices %}
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-desktop"></i> Devices in {{ group.Name }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Status</th>
+                                <th>IP Address</th>
+                                <th>OS</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in devices %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-desktop text-primary me-2"></i>
+                                        <strong>{{ device.Name|default:"Unknown Device" }}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ device.StatusClass }}">
+                                        <i class="fas fa-circle"></i> {{ device.StatusText }}
+                                    </span>
+                                </td>
+                                <td>{{ device.ExternalIpAddress|default:"N/A" }}</td>
+                                <td>{{ device.Description|default:"Unknown" }}</td>
+                                <td>{{ device.LastSeen|default:"Never" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if device.IsOnline %}
+                                            <button class="btn btn-sm btn-outline-primary" onclick="runScript('{{ device.Id }}', '{{ device.Name }}')" title="Run Script">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="rebootDevice('{{ device.Id }}', '{{ device.Name }}')" title="Reboot">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="Device Offline">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        {% if devices.has_other_pages %}
+        <nav aria-label="Device pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if devices.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ devices.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ devices.number }} of {{ devices.paginator.num_pages }}</span>
+                </li>
+                
+                {% if devices.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ devices.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ devices.paginator.num_pages }}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-desktop fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Devices in Group</h4>
+                <p class="text-muted">This group doesn't contain any devices yet.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function runScript(deviceId, deviceName) {
+    if (confirm(`Run script on ${deviceName}?`)) {
+        window.location.href = `/pulseway/run-script/?device=${deviceId}`;
+    }
+}
+
+function rebootDevice(deviceId, deviceName) {
+    if (confirm(`Are you sure you want to reboot ${deviceName}?`)) {
+        fetch(`/pulseway/reboot-device/${deviceId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Reboot command sent successfully');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

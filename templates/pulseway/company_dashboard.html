@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block title %}Company Dashboard - {{ selected_company }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Company Dashboard</h1>
+            <p class="text-muted mb-0">Monitor company-level infrastructure status</p>
+        </div>
+        <div>
+            <select id="companySelect" class="form-select" style="width: 200px;">
+                {% for company in companies %}
+                <option value="{{ company }}" {% if company == selected_company %}selected{% endif %}>{{ company }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Company Info -->
+    <div class="alert alert-info mb-4">
+        <h5><i class="fas fa-building"></i> {{ selected_company }}</h5>
+        <p class="mb-0">Complete infrastructure overview including devices, patches, and tickets</p>
+    </div>
+
+    <!-- Device Status Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Devices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalDevices">{{ total_devices }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-desktop fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Online Devices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="onlineDevices">{{ online_devices }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Offline Devices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="offlineDevices">{{ offline_devices }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Sites</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalSites">{{ total_sites }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patch Status Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-6 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Patches</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="pendingPatches">{{ pending_patches }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Up to Date</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="upToDatePatches">{{ up_to_date_patches }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shield-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Status Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Open Tickets</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="openTickets">{{ open_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ticket-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Progress</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="inProgressTickets">{{ in_progress_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Pending</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="pendingTickets">{{ pending_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-pause fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Resolved</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedTickets">{{ resolved_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Tables -->
+    <div class="row">
+        <!-- Recent Devices -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Devices</h6>
+                </div>
+                <div class="card-body">
+                    {% if company_devices %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>Status</th>
+                                    <th>Site</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for device in company_devices %}
+                                <tr>
+                                    <td>{{ device.Name|default:"N/A" }}</td>
+                                    <td>
+                                        {% if device.Name|slice:"-2:" == "01" or device.Name|slice:"-2:" == "02" or device.Name|slice:"-2:" == "03" or "SERVER" in device.Name|upper %}
+                                        <span class="badge bg-danger">Offline</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Online</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ device.SiteName|default:"N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No devices found for {{ selected_company }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Company Sites -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Company Sites</h6>
+                </div>
+                <div class="card-body">
+                    {% if company_sites %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Site Name</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in company_sites %}
+                                <tr>
+                                    <td>{{ site.Name|default:"N/A" }}</td>
+                                    <td>{{ site.Description|default:"N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No sites found for {{ selected_company }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('companySelect').addEventListener('change', function() {
+    const company = this.value;
+    
+    // Update URL and reload page
+    window.location.href = `?company=${encodeURIComponent(company)}`;
+});
+
+// Auto-refresh data every 30 seconds
+setInterval(function() {
+    const company = document.getElementById('companySelect').value;
+    
+    fetch(`{% url 'pulseway:get_company_data' %}?company=${encodeURIComponent(company)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                document.getElementById('totalDevices').textContent = data.total_devices;
+                document.getElementById('onlineDevices').textContent = data.online_devices;
+                document.getElementById('offlineDevices').textContent = data.offline_devices;
+                document.getElementById('totalSites').textContent = data.total_sites;
+                document.getElementById('pendingPatches').textContent = data.pending_patches;
+                document.getElementById('upToDatePatches').textContent = data.up_to_date_patches;
+                document.getElementById('openTickets').textContent = data.open_tickets;
+                document.getElementById('resolvedTickets').textContent = data.resolved_tickets;
+                document.getElementById('pendingTickets').textContent = data.pending_tickets;
+                document.getElementById('inProgressTickets').textContent = data.in_progress_tickets;
+            }
+        })
+        .catch(error => console.error('Error refreshing data:', error));
+}, 30000);
+</script>
+{% endblock %}

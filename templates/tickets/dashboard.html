@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - IT Support Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Support Dashboard</h1>
+            <p class="text-muted mb-0">Welcome back, {{ user.get_full_name|default:user.username }}</p>
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-plus"></i> Quick Actions
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'create_ticket' %}"><i class="fas fa-ticket-alt"></i> Create Ticket</a></li>
+                <li><a class="dropdown-item" href="{% url 'technicians' %}"><i class="fas fa-users"></i> View Technicians</a></li>
+                <li><a class="dropdown-item" href="{% url 'pulseway:dashboard' %}"><i class="fas fa-server"></i> Pulseway Console</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Tickets</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ticket-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Open Tickets</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ open_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Progress</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ in_progress_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Resolved</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ resolved_tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-3">
+        <!-- Tickets Table -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list"></i> My Tickets
+                    </h6>
+                    <a href="{% url 'create_ticket' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> New Ticket
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if tickets %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th><i class="fas fa-hashtag"></i> ID</th>
+                                        <th><i class="fas fa-file-alt"></i> Title</th>
+                                        <th><i class="fas fa-exclamation-circle"></i> Priority</th>
+                                        <th><i class="fas fa-info-circle"></i> Status</th>
+                                        <th><i class="fas fa-calendar"></i> Created</th>
+                                        <th><i class="fas fa-cogs"></i> Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ticket in tickets %}
+                                    <tr>
+                                        <td><strong>#{{ ticket.id }}</strong></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="fw-bold">{{ ticket.title|truncatechars:40 }}</div>
+                                                    <small class="text-muted">{{ ticket.description|truncatechars:60 }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if ticket.priority == 'Urgent' %}danger{% elif ticket.priority == 'High' %}warning{% elif ticket.priority == 'Medium' %}info{% else %}secondary{% endif %} rounded-pill">
+                                                <i class="fas fa-{% if ticket.priority == 'Urgent' %}fire{% elif ticket.priority == 'High' %}exclamation-triangle{% elif ticket.priority == 'Medium' %}info-circle{% else %}minus-circle{% endif %}"></i>
+                                                {{ ticket.priority }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if ticket.status == 'Open' %}primary{% elif ticket.status == 'In Progress' %}warning{% elif ticket.status == 'Resolved' %}success{% else %}secondary{% endif %} rounded-pill">
+                                                <i class="fas fa-{% if ticket.status == 'Open' %}clock{% elif ticket.status == 'In Progress' %}cogs{% elif ticket.status == 'Resolved' %}check{% else %}question{% endif %}"></i>
+                                                {{ ticket.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ ticket.created_at|date:"M d, Y" }}<br>{{ ticket.created_at|time:"H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'view_ticket' ticket.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'update_ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary" title="Edit Ticket">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTicket({{ ticket.id }}, '{{ ticket.title }}')" title="Delete Ticket">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-ticket-alt fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Tickets Yet</h5>
+                            <p class="text-muted">You haven't created any support tickets yet.</p>
+                            <a href="{% url 'create_ticket' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Your First Ticket
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Info -->
+        <div class="col-lg-4">
+            <!-- Quick Actions Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt"></i> Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'create_ticket' %}" class="btn btn-primary">
+                            <i class="fas fa-ticket-alt"></i> Create New Ticket
+                        </a>
+                        <a href="{% url 'technicians' %}" class="btn btn-outline-info">
+                            <i class="fas fa-users"></i> View Technicians
+                        </a>
+                        <a href="{% url 'pulseway:dashboard' %}" class="btn btn-outline-success">
+                            <i class="fas fa-server"></i> Pulseway Console
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie"></i> Ticket Overview
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if tickets %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Open Tickets</span>
+                                <span class="text-warning">{{ open_tickets }}</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-warning" style="width: {{ open_percentage }}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>In Progress</span>
+                                <span class="text-info">{{ in_progress_tickets }}</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: {{ progress_percentage }}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Resolved</span>
+                                <span class="text-success">{{ resolved_tickets }}</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: {{ resolved_percentage }}%"></div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No ticket data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteTicketModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-trash text-danger"></i> Confirm Ticket Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete ticket <strong id="ticketTitle"></strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This action cannot be undone and will permanently remove the ticket and all its data.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteTicket">
+                    <i class="fas fa-trash"></i> Delete Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTicketId = null;
+
+function deleteTicket(ticketId, ticketTitle) {
+    currentTicketId = ticketId;
+    document.getElementById('ticketTitle').textContent = `#${ticketId} - ${ticketTitle}`;
+    new bootstrap.Modal(document.getElementById('deleteTicketModal')).show();
+}
+
+document.getElementById('confirmDeleteTicket').addEventListener('click', function() {
+    if (currentTicketId) {
+        fetch(`/tickets/delete/${currentTicketId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('deleteTicketModal')).hide();
+            if (data.success) {
+                showAlert('success', data.message);
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', 'Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            bootstrap.Modal.getInstance(document.getElementById('deleteTicketModal')).hide();
+            showAlert('danger', 'Error: ' + error);
+        });
+    }
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+}
+</script>
+
+<style>
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.text-xs { font-size: 0.7rem; }
+.table-hover tbody tr:hover { background-color: rgba(0,0,0,.075); }
+</style>
+{% endblock %}

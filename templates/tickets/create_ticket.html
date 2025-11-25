@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Ticket - IT Support Portal{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-ticket-alt text-primary"></i> Create Support Ticket
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="{{ form.title.id_for_label }}" class="form-label">
+                                        <i class="fas fa-heading"></i> Ticket Title *
+                                    </label>
+                                    {{ form.title }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.priority.id_for_label }}" class="form-label">
+                                        <i class="fas fa-exclamation-circle"></i> Priority *
+                                    </label>
+                                    {{ form.priority }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="fas fa-align-left"></i> Description *
+                            </label>
+                            {{ form.description }}
+                            <div class="form-text">Please provide detailed information about your issue</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                                <i class="fas fa-paperclip"></i> Attachment (Optional)
+                            </label>
+                            {{ form.attachment }}
+                            {% if form.attachment.help_text %}
+                                <div class="form-text">{{ form.attachment.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="card shadow mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle text-info"></i> Need Help?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Priority Levels</h6>
+                            <ul class="small">
+                                <li><strong>Low:</strong> General questions, minor issues</li>
+                                <li><strong>Medium:</strong> Standard support requests</li>
+                                <li><strong>High:</strong> Important issues affecting work</li>
+                                <li><strong>Urgent:</strong> Critical system failures</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Tips for Better Support</h6>
+                            <ul class="small">
+                                <li>Be specific about the problem</li>
+                                <li>Include error messages if any</li>
+                                <li>Mention steps you've already tried</li>
+                                <li>Attach screenshots or files if helpful</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

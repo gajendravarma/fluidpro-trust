@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block title %}Devices - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Device Management</h1>
+            <p class="text-muted mb-0">{{ total_devices }} devices total</p>
+        </div>
+        <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" name="search" value="{{ search_query }}" 
+                               placeholder="Search by device name, site, or organization...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <a href="{% url 'pulseway:devices' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Devices Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-desktop"></i> Devices
+                {% if search_query %}
+                    <small class="text-muted">- Search results for "{{ search_query }}"</small>
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if devices %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="devicesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th><i class="fas fa-desktop"></i> Device</th>
+                                <th><i class="fas fa-laptop"></i> Operating System</th>
+                                <th><i class="fas fa-network-wired"></i> IP Address</th>
+                                <th><i class="fas fa-circle"></i> Status</th>
+                                <th><i class="fas fa-building"></i> Location</th>
+                                <th><i class="fas fa-cogs"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in devices %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="device-icon me-3">
+                                            <i class="fas fa-{% if device.Type == 'windows' %}windows{% elif device.Type == 'mac' %}apple{% elif device.Type == 'linux' %}linux{% else %}desktop{% endif %} fa-lg text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ device.Name|default:"Unknown Device" }}</div>
+                                            <small class="text-muted">{{ device.GroupName|default:"No Group" }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div class="fw-bold">{{ device.Description|default:"Unknown OS" }}</div>
+                                        <small class="text-muted">{{ device.Type|title|default:"Unknown" }} System</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <code>{{ device.ExternalIpAddress|default:"N/A" }}</code>
+                                </td>
+                                <td>
+                                    {% if 'Offline' in device.Uptime %}
+                                        <span class="badge bg-danger rounded-pill">
+                                            <i class="fas fa-times-circle me-1"></i>Offline
+                                        </span>
+                                        <br><small class="text-muted">{{ device.Uptime }}</small>
+                                    {% else %}
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="fas fa-check-circle me-1"></i>Online
+                                        </span>
+                                        <br><small class="text-muted">{{ device.Uptime }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>
+                                        <div class="fw-bold">{{ device.SiteName|default:"Unknown Site" }}</div>
+                                        <small class="text-muted">{{ device.OrganizationName|default:"Unknown Org" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="rebootDevice('{{ device.Identifier }}', '{{ device.Name }}')"
+                                                title="Reboot Device"
+                                                {% if not device.IsAgentInstalled or 'Offline' in device.Uptime %}disabled{% endif %}>
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                        <a href="{% url 'pulseway:run_script' %}?device_id={{ device.Identifier }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Run Script"
+                                           {% if not device.IsAgentInstalled or 'Offline' in device.Uptime %}onclick="return false;" style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-code"></i>
+                                        </a>
+                                        <a href="{% url 'pulseway:install_patches' %}?device_id={{ device.Identifier }}" 
+                                           class="btn btn-sm btn-outline-warning" title="Install Patches"
+                                           {% if not device.IsAgentInstalled or 'Offline' in device.Uptime %}onclick="return false;" style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                onclick="viewDeviceDetails('{{ device.Identifier }}', '{{ device.Name }}', '{{ device.Description }}', '{{ device.ExternalIpAddress }}', '{{ device.Uptime }}')"
+                                                title="View Details">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if devices.has_other_pages %}
+                <nav aria-label="Device pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if devices.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ devices.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in devices.paginator.page_range %}
+                            {% if devices.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > devices.number|add:'-3' and num < devices.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if devices.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ devices.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ devices.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    <div class="text-center text-muted">
+                        Page {{ devices.number }} of {{ devices.paginator.num_pages }} 
+                        ({{ devices.paginator.count }} total devices)
+                    </div>
+                </nav>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-desktop fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No devices found</h5>
+                    {% if search_query %}
+                        <p>No devices match your search criteria.</p>
+                        <a href="{% url 'pulseway:devices' %}" class="btn btn-outline-primary">Clear Search</a>
+                    {% else %}
+                        <p>No devices are currently available.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Device Details Modal -->
+<div class="modal fade" id="deviceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-desktop text-primary"></i> Device Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="deviceDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading device details...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reboot Confirmation Modal -->
+<div class="modal fade" id="rebootModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-power-off text-danger"></i> Confirm Device Reboot
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reboot <strong id="deviceName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This action will immediately restart the device and may cause temporary service interruption.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmReboot">
+                    <i class="fas fa-power-off"></i> Reboot Device
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDeviceId = null;
+
+function rebootDevice(deviceId, deviceName) {
+    currentDeviceId = deviceId;
+    document.getElementById('deviceName').textContent = deviceName;
+    new bootstrap.Modal(document.getElementById('rebootModal')).show();
+}
+
+function viewDeviceDetails(deviceId, deviceName, description, ipAddress, uptime) {
+    const isOnline = !uptime.includes('Offline');
+    const statusBadge = isOnline ? 
+        '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Online</span>' : 
+        '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Offline</span>';
+    
+    document.getElementById('deviceDetailsContent').innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-desktop"></i> ${deviceName}</h6>
+                <p><strong>Device ID:</strong> ${deviceId}</p>
+                <p><strong>Status:</strong> ${statusBadge}</p>
+                <p><strong>Uptime:</strong> ${uptime}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Operating System:</strong> ${description || 'Unknown'}</p>
+                <p><strong>External IP:</strong> <code>${ipAddress || 'N/A'}</code></p>
+                <p><strong>Available Actions:</strong> ${isOnline ? 'All actions available' : 'Limited actions (device offline)'}</p>
+            </div>
+        </div>
+        <div class="mt-3">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Note:</strong> This data is retrieved from Pulseway's individual device API endpoint.
+            </div>
+        </div>
+    `;
+    new bootstrap.Modal(document.getElementById('deviceDetailsModal')).show();
+}
+
+document.getElementById('confirmReboot').addEventListener('click', function() {
+    if (currentDeviceId) {
+        fetch(`/pulseway/reboot-device/${currentDeviceId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('rebootModal')).hide();
+            if (data.success) {
+                showAlert('success', 'Device reboot initiated successfully!');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', 'Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            bootstrap.Modal.getInstance(document.getElementById('rebootModal')).hide();
+            showAlert('danger', 'Error: ' + error);
+        });
+    }
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+}
+</script>
+
+<style>
+.device-icon { color: #6c757d; }
+.table-hover tbody tr:hover { background-color: rgba(0,0,0,.075); }
+.btn-group .btn { margin-right: 2px; }
+.btn-group .btn:last-child { margin-right: 0; }
+</style>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Actions History - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Actions History</h2>
+                <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {% if actions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Target</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for action in actions %}
+                                    <tr>
+                                        <td>{{ action.get_action_type_display }}</td>
+                                        <td>{{ action.target_name }}</td>
+                                        <td>{{ action.description }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if action.status == 'completed' %}success{% elif action.status == 'failed' %}danger{% elif action.status == 'running' %}warning{% else %}secondary{% endif %}">
+                                                {{ action.status|title }}
+                                            </span>
+                                        </td>
+                                        <td>{{ action.created_at|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            {% if action.result %}
+                                                <button class="btn btn-sm btn-outline-info" onclick="showDetails('{{ action.id }}')">View</button>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No actions found</h5>
+                            <p>No actions have been performed yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for showing action details -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Action Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre id="actionDetails"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showDetails(actionId) {
+    // In a real implementation, you'd fetch the details via AJAX
+    // For now, we'll just show a placeholder
+    document.getElementById('actionDetails').textContent = 'Action details would be shown here for action ID: ' + actionId;
+    $('#detailsModal').modal('show');
+}
+</script>
+{% endblock %}
