@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'tickets',
     'pulseway',
+    'office365',
 ]
 
 MIDDLEWARE = [
@@ -67,3 +68,8 @@ PULSEWAY_TOKEN_SECRET = 'f42f47339208469da07bc3c62998e879ac53acd7dd6f4928837bb23
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
+
+# Office 365 API Configuration
+OFFICE365_TENANT_ID = os.environ.get('OFFICE365_TENANT_ID', '')
+OFFICE365_CLIENT_ID = os.environ.get('OFFICE365_CLIENT_ID', '')
+OFFICE365_CLIENT_SECRET = os.environ.get('OFFICE365_CLIENT_SECRET', '')

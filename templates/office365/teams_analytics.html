@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Teams Analytics - Office 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Teams Analytics</h1>
+                <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_users }}</h4>
+                            <p class="mb-0">Total Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ active_users }}</h4>
+                            <p class="mb-0">Active Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_messages|floatformat:0 }}</h4>
+                            <p class="mb-0">Total Messages</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-comments fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_meetings }}</h4>
+                            <p class="mb-0">Total Meetings</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-video fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teams Usage Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Teams User Activity (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Display Name</th>
+                                    <th>Team Messages</th>
+                                    <th>Private Messages</th>
+                                    <th>Calls</th>
+                                    <th>Meetings</th>
+                                    <th>Last Activity</th>
+                                    <th>Activity Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in teams_data %}
+                                <tr>
+                                    <td>{{ user.upn }}</td>
+                                    <td>{{ user.display_name }}</td>
+                                    <td>{{ user.team_chat_messages }}</td>
+                                    <td>{{ user.private_chat_messages }}</td>
+                                    <td>{{ user.calls }}</td>
+                                    <td>{{ user.meetings }}</td>
+                                    <td>{{ user.last_activity|default:"N/A" }}</td>
+                                    <td>
+                                        {% with total_activity=user.team_chat_messages|add:user.private_chat_messages|add:user.meetings %}
+                                            {% if total_activity > 100 %}
+                                                <span class="badge badge-success">High</span>
+                                            {% elif total_activity > 20 %}
+                                                <span class="badge badge-warning">Medium</span>
+                                            {% elif total_activity > 0 %}
+                                                <span class="badge badge-info">Low</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">Inactive</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">No Teams activity data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

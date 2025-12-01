@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}Office 365 Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Office 365 Dashboard</h1>
+        </div>
+    </div>
+
+    <!-- License Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_licenses }}</h4>
+                            <p class="mb-0">Total Licenses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-certificate fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ consumed_licenses }}</h4>
+                            <p class="mb-0">Used Licenses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ available_licenses }}</h4>
+                            <p class="mb-0">Available Licenses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-plus-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ license_usage_percent|floatformat:1 }}%</h4>
+                            <p class="mb-0">License Usage</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-pie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- License Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">License Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    {% for license in license_summary %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>{{ license.sku_name }}</span>
+                            <span>{{ license.consumed }}/{{ license.total }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar {% if license.usage_percent > 90 %}bg-danger{% elif license.usage_percent > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 style="width: {{ license.usage_percent }}%">
+                                {{ license.usage_percent|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No license data available</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Mailbox Usage Summary -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Mailbox Usage Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4 class="text-primary">{{ total_mailboxes }}</h4>
+                            <p class="mb-0">Total Mailboxes</p>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-danger">{{ high_usage_count }}</h4>
+                            <p class="mb-0">High Usage (>85%)</p>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-success">{{ total_mailboxes|add:"-"|add:high_usage_count }}</h4>
+                            <p class="mb-0">Normal Usage</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Usage Mailboxes Alert -->
+    {% if mailbox_data.high_usage %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> High Mailbox Usage Alert</h5>
+                <p>The following mailboxes are using more than 85% of their quota:</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Display Name</th>
+                                <th>Usage</th>
+                                <th>Storage Used</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mailbox in mailbox_data.high_usage|slice:":5" %}
+                            <tr>
+                                <td>{{ mailbox.upn }}</td>
+                                <td>{{ mailbox.display_name }}</td>
+                                <td>
+                                    <span class="badge badge-danger">{{ mailbox.used_percent|floatformat:1 }}%</span>
+                                </td>
+                                <td>{{ mailbox.used_gb|floatformat:2 }} GB / {{ mailbox.quota_gb|floatformat:2 }} GB</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent User Activity -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent User Activity</h5>
+                    <div>
+                        <a href="{% url 'office365:teams_analytics' %}" class="btn btn-sm btn-primary">
+                            <i class="fab fa-microsoft-teams"></i> Teams Analytics
+                        </a>
+                        <a href="{% url 'office365:email_analytics' %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-envelope"></i> Email Analytics
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Display Name</th>
+                                    <th>Last Activity</th>
+                                    <th>Services</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in user_activity %}
+                                <tr>
+                                    <td>{{ user.upn }}</td>
+                                    <td>{{ user.display_name }}</td>
+                                    <td>{{ user.last_activity|default:"N/A" }}</td>
+                                    <td>
+                                        {% if user.exchange_active %}<span class="badge badge-primary">Exchange</span>{% endif %}
+                                        {% if user.teams_active %}<span class="badge badge-info">Teams</span>{% endif %}
+                                        {% if user.sharepoint_active %}<span class="badge badge-success">SharePoint</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No user activity data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'office365:teams_analytics' %}" class="btn btn-outline-primary">
+                            <i class="fab fa-microsoft-teams"></i> View Teams Analytics
+                        </a>
+                        <a href="{% url 'office365:email_analytics' %}" class="btn btn-outline-info">
+                            <i class="fas fa-envelope"></i> View Email Analytics
+                        </a>
+                        <button class="btn btn-outline-success" onclick="refreshDashboard()">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="exportReport()">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">System Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>API Connection</span>
+                        <span class="badge badge-success">Online</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Last Update</span>
+                        <small class="text-muted">{{ "now"|date:"H:i" }}</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Auto Refresh</span>
+                        <span class="badge badge-info">5 min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh dashboard every 5 minutes
+setTimeout(function() {
+    location.reload();
+}, 300000);
+
+function refreshDashboard() {
+    location.reload();
+}
+
+function exportReport() {
+    // Placeholder for export functionality
+    alert('Export functionality will be implemented in the next phase');
+}
+</script>
+{% endblock %}

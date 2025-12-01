@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Email Analytics - Office 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Email Analytics</h1>
+                <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_users }}</h4>
+                            <p class="mb-0">Total Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ active_users }}</h4>
+                            <p class="mb-0">Active Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_sent|floatformat:0 }}</h4>
+                            <p class="mb-0">Emails Sent</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-paper-plane fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_received|floatformat:0 }}</h4>
+                            <p class="mb-0">Emails Received</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-inbox fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Activity Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Email User Activity (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Display Name</th>
+                                    <th>Emails Sent</th>
+                                    <th>Emails Received</th>
+                                    <th>Emails Read</th>
+                                    <th>Last Activity</th>
+                                    <th>Activity Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in email_data %}
+                                <tr>
+                                    <td>{{ user.upn }}</td>
+                                    <td>{{ user.display_name }}</td>
+                                    <td>{{ user.send_count }}</td>
+                                    <td>{{ user.receive_count }}</td>
+                                    <td>{{ user.read_count }}</td>
+                                    <td>{{ user.last_activity|default:"N/A" }}</td>
+                                    <td>
+                                        {% if user.send_count > 100 %}
+                                            <span class="badge badge-success">High</span>
+                                        {% elif user.send_count > 20 %}
+                                            <span class="badge badge-warning">Medium</span>
+                                        {% elif user.send_count > 0 %}
+                                            <span class="badge badge-info">Low</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No email activity data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
