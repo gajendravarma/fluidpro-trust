@@ -1,5 +1,8 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +20,8 @@ INSTALLED_APPS = [
     'tickets',
     'pulseway',
     'office365',
+    'datto',
+    'site24x7',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +61,7 @@ DATABASES = {
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # ManageEngine API Configuration
 MANAGE_ENGINE_BASE_URL = 'https://fluidpro.wepsol.com:8080/api/v3'
@@ -73,3 +79,20 @@ LOGIN_REDIRECT_URL = '/'
 OFFICE365_TENANT_ID = os.environ.get('OFFICE365_TENANT_ID', '')
 OFFICE365_CLIENT_ID = os.environ.get('OFFICE365_CLIENT_ID', '')
 OFFICE365_CLIENT_SECRET = os.environ.get('OFFICE365_CLIENT_SECRET', '')
+
+# Azure API Configuration
+AZURE_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID', '')
+AZURE_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET', '')
+AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID', '')
+
+# Datto API Configuration
+DATTO_PUBLIC_KEY = os.environ.get('DATTO_PUBLIC_KEY', 'e16f42')
+DATTO_SECRET_KEY = os.environ.get('DATTO_SECRET_KEY', '05817e9d31fd009260931e46f90d6205')
+DATTO_BASE_URL = os.environ.get('DATTO_BASE_URL', 'https://api.datto.com/v1')
+
+# Site24x7 API Configuration
+SITE24X7_ACCESS_TOKEN = os.environ.get('SITE24X7_ACCESS_TOKEN', '1000.ca3eaf90f2903e166e022c577a619bd9.f98078be33d0e48b87804b0f094fbcc7')
+SITE24X7_REFRESH_TOKEN = os.environ.get('SITE24X7_REFRESH_TOKEN', '1000.5664d5446a88dc8dda978e65d6be3929.5cea347c31be5379d8946aad7366b66c')
+SITE24X7_API_DOMAIN = os.environ.get('SITE24X7_API_DOMAIN', 'https://www.site24x7.in')
+ZOHO_CLIENT_ID = os.environ.get('ZOHO_CLIENT_ID', '')
+ZOHO_CLIENT_SECRET = os.environ.get('ZOHO_CLIENT_SECRET', '')

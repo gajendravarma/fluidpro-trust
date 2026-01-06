@@ -6,4 +6,6 @@ urlpatterns = [
     path('', include('tickets.urls')),
     path('pulseway/', include('pulseway.urls')),
     path('office365/', include('office365.urls')),
+    path('datto/', include('datto.urls')),
+    path('site24x7/', include('site24x7.urls')),
 ]

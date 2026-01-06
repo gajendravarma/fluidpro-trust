@@ -13,6 +13,9 @@ class Office365API:
 
     def get_access_token(self):
         """Get access token for Microsoft Graph API"""
+        if not self.tenant_id or not self.client_id or not self.client_secret:
+            raise Exception("Office 365 credentials not configured. Please set OFFICE365_TENANT_ID, OFFICE365_CLIENT_ID, and OFFICE365_CLIENT_SECRET environment variables.")
+        
         token_url = f"https://login.microsoftonline.com/{self.tenant_id}/oauth2/v2.0/token"
         token_data = {
             "grant_type": "client_credentials",
@@ -128,13 +131,26 @@ class Office365API:
             
             active_users = []
             for row in reader:
+                # Get all activity dates
+                exchange_activity = row.get("Exchange Last Activity Date", "").strip()
+                teams_activity = row.get("Teams Last Activity Date", "").strip()
+                sharepoint_activity = row.get("SharePoint Last Activity Date", "").strip()
+                onedrive_activity = row.get("OneDrive Last Activity Date", "").strip()
+                
+                # Find the most recent activity date
+                activity_dates = [d for d in [exchange_activity, teams_activity, sharepoint_activity, onedrive_activity] if d]
+                last_activity = max(activity_dates) if activity_dates else ""
+                
                 active_users.append({
                     'upn': row.get("User Principal Name", ""),
                     'display_name': row.get("Display Name", ""),
-                    'last_activity': row.get("Last Activity Date", ""),
+                    'last_activity': last_activity,
                     'exchange_active': row.get("Has Exchange License", "") == "True",
                     'teams_active': row.get("Has Teams License", "") == "True",
-                    'sharepoint_active': row.get("Has SharePoint License", "") == "True"
+                    'sharepoint_active': row.get("Has SharePoint License", "") == "True",
+                    'exchange_last_activity': exchange_activity,
+                    'teams_last_activity': teams_activity,
+                    'sharepoint_last_activity': sharepoint_activity
                 })
             
             return active_users
@@ -147,7 +163,7 @@ class Office365API:
             self.get_access_token()
             
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        report_url = f"https://graph.microsoft.com/v1.0/reports/getTeamsUserActivityDetail(period='{period}')?$format=text/csv"
+        report_url = f"https://graph.microsoft.com/v1.0/reports/getTeamsUserActivityUserDetail(period='{period}')?$format=text/csv"
         
         try:
             response = requests.get(report_url, headers=headers)

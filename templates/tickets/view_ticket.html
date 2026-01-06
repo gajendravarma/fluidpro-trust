@@ -11,9 +11,9 @@
             <p class="text-muted mb-0">{{ ticket.title }}</p>
         </div>
         <div>
-            <a href="{% url 'update_ticket' ticket.id %}" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editTicketModal">
                 <i class="fas fa-edit"></i> Edit Ticket
-            </a>
+            </button>
             <a href="{% url 'dashboard' %}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
@@ -316,4 +316,71 @@ function showAlert(type, message) {
 
 .fs-6 { font-size: 0.875rem; }
 </style>
+
+<!-- Edit Ticket Modal -->
+<div class="modal fade" id="editTicketModal" tabindex="-1" aria-labelledby="editTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editTicketModalLabel">
+                    <i class="fas fa-edit"></i> Edit Ticket #{{ ticket.id }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'update_ticket' ticket.id %}" id="editTicketForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="id_title" class="form-label">
+                                <i class="fas fa-heading text-primary"></i> Title
+                            </label>
+                            <input type="text" class="form-control" id="id_title" name="title" value="{{ ticket.title }}" required>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="id_description" class="form-label">
+                                <i class="fas fa-align-left text-primary"></i> Description
+                            </label>
+                            <textarea class="form-control" id="id_description" name="description" rows="4" required>{{ ticket.description }}</textarea>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="id_priority" class="form-label">
+                                <i class="fas fa-exclamation-circle text-primary"></i> Priority
+                            </label>
+                            <select class="form-select" id="id_priority" name="priority" required>
+                                <option value="Low" {% if ticket.priority == 'Low' %}selected{% endif %}>Low</option>
+                                <option value="Medium" {% if ticket.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                                <option value="High" {% if ticket.priority == 'High' %}selected{% endif %}>High</option>
+                                <option value="Urgent" {% if ticket.priority == 'Urgent' %}selected{% endif %}>Urgent</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="id_status" class="form-label">
+                                <i class="fas fa-info-circle text-primary"></i> Status
+                            </label>
+                            <select class="form-select" id="id_status" name="status" required>
+                                <option value="Open" {% if ticket.status == 'Open' %}selected{% endif %}>Open</option>
+                                <option value="In Progress" {% if ticket.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                <option value="Resolved" {% if ticket.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="Closed" {% if ticket.status == 'Closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

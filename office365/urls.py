@@ -10,4 +10,5 @@ urlpatterns = [
     path('teams-analytics/', views.teams_analytics, name='teams_analytics'),
     path('email-analytics/', views.email_analytics, name='email_analytics'),
     path('api/summary/', views.api_summary, name='api_summary'),
+    path('download-high-storage/', views.download_high_storage_users, name='download_high_storage'),
 ]

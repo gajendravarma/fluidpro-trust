@@ -1,8 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .services import Office365API
 from django.contrib import messages
+import csv
 
 
 @login_required
@@ -45,8 +46,44 @@ def dashboard(request):
             'license_summary': [],
             'mailbox_data': {'all_mailboxes': [], 'high_usage': []},
             'user_activity': [],
+            'total_licenses': 0,
+            'consumed_licenses': 0,
+            'available_licenses': 0,
+            'license_usage_percent': 0,
+            'high_usage_count': 0,
+            'total_mailboxes': 0,
             'error': str(e)
         })
+
+
+@login_required
+def download_high_storage_users(request):
+    """Download CSV of users with high mailbox storage usage"""
+    try:
+        api = Office365API()
+        mailbox_data = api.get_mailbox_usage()
+        high_usage_users = mailbox_data.get('high_usage', [])
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="high_storage_users.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Email', 'Display Name', 'Used %', 'Used GB', 'Quota GB'])
+        
+        for user in high_usage_users:
+            writer.writerow([
+                user['upn'],
+                user['display_name'],
+                f"{user['used_percent']:.1f}%",
+                f"{user['used_gb']:.2f}",
+                f"{user['quota_gb']:.2f}"
+            ])
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error downloading data: {str(e)}')
+        return redirect('office365:dashboard')
 
 
 @login_required
@@ -93,6 +130,10 @@ def teams_analytics(request):
         api = Office365API()
         teams_data = api.get_teams_usage()
         
+        # Debug: Check if we have any data
+        if not teams_data:
+            messages.warning(request, 'No Teams usage data available. This may be due to insufficient permissions or no Teams activity in the selected period.')
+        
         # Calculate summary stats
         total_messages = sum(t['team_chat_messages'] + t['private_chat_messages'] for t in teams_data)
         total_meetings = sum(t['meetings'] for t in teams_data)
@@ -112,6 +153,10 @@ def teams_analytics(request):
         messages.error(request, f'Error loading Teams analytics: {str(e)}')
         return render(request, 'office365/teams_analytics.html', {
             'teams_data': [],
+            'total_messages': 0,
+            'total_meetings': 0,
+            'active_users': 0,
+            'total_users': 0,
             'error': str(e)
         })
 

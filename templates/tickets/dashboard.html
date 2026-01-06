@@ -18,6 +18,9 @@
                 <li><a class="dropdown-item" href="{% url 'create_ticket' %}"><i class="fas fa-ticket-alt"></i> Create Ticket</a></li>
                 <li><a class="dropdown-item" href="{% url 'technicians' %}"><i class="fas fa-users"></i> View Technicians</a></li>
                 <li><a class="dropdown-item" href="{% url 'pulseway:dashboard' %}"><i class="fas fa-server"></i> Pulseway Console</a></li>
+                <li><a class="dropdown-item" href="/office365/"><i class="fas fa-cloud"></i> Office 365</a></li>
+                <li><a class="dropdown-item" href="/datto/"><i class="fas fa-shield-alt"></i> Datto Backup</a></li>
+                <li><a class="dropdown-item" href="/site24x7/"><i class="fas fa-chart-line"></i> Site24x7 Monitoring</a></li>
             </ul>
         </div>
     </div>
@@ -148,9 +151,9 @@
                                                 <a href="{% url 'view_ticket' ticket.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{% url 'update_ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary" title="Edit Ticket">
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="openEditModal({{ ticket.id }}, '{{ ticket.title|escapejs }}', '{{ ticket.description|escapejs }}', '{{ ticket.priority }}', '{{ ticket.status }}')" title="Edit Ticket">
                                                     <i class="fas fa-edit"></i>
-                                                </a>
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteTicket({{ ticket.id }}, '{{ ticket.title }}')" title="Delete Ticket">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -195,6 +198,144 @@
                         <a href="{% url 'pulseway:dashboard' %}" class="btn btn-outline-success">
                             <i class="fas fa-server"></i> Pulseway Console
                         </a>
+                        <a href="/office365/" class="btn btn-outline-primary">
+                            <i class="fas fa-cloud"></i> Office 365
+                        </a>
+                        <a href="/datto/" class="btn btn-outline-warning">
+                            <i class="fas fa-shield-alt"></i> Datto Backup
+                        </a>
+                        <a href="/site24x7/" class="btn btn-outline-success">
+                            <i class="fas fa-chart-line"></i> Site24x7 Monitoring
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ManageEngine Historical Data Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar"></i> ManageEngine - Last 2 Months Data
+                    </h6>
+                    <button class="btn btn-sm btn-primary" onclick="loadHistoricalData()">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="historical-loading" class="text-center py-4" style="display:none;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading historical data...
+                    </div>
+                    
+                    <!-- Historical Statistics -->
+                    <div class="row g-3 mb-4" id="historical-stats" style="display:none;">
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card border-left-primary shadow-sm h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Tickets</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="hist-total">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-ticket-alt fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card border-left-warning shadow-sm h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="hist-pending">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card border-left-warning shadow-sm h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Cancelled</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="hist-cancelled">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card border-left-info shadow-sm h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Closed</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="hist-closed">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-archive fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Tickets Button -->
+                    <div id="recent-tickets-button" style="display:none;" class="text-center mt-3">
+                        <button class="btn btn-info" onclick="showRecentTicketsModal()">
+                            <i class="fas fa-list"></i> View Recent Tickets (Last 10)
+                        </button>
+                    </div>
+
+                    <div id="historical-error" class="alert alert-danger" style="display:none;">
+                        <i class="fas fa-exclamation-triangle"></i> <span id="error-message"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Tickets Modal -->
+            <div class="modal fade" id="recentTicketsModal" tabindex="-1" aria-labelledby="recentTicketsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="recentTicketsModalLabel">
+                                <i class="fas fa-ticket-alt text-primary"></i> Recent Tickets (Last 10)
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Subject</th>
+                                            <th>Status</th>
+                                            <th>Priority</th>
+                                            <th>Created</th>
+                                            <th>Requester</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-recent-tickets-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -325,4 +466,222 @@ function showAlert(type, message) {
 .text-xs { font-size: 0.7rem; }
 .table-hover tbody tr:hover { background-color: rgba(0,0,0,.075); }
 </style>
+
+<script>
+function loadHistoricalData() {
+    // Show loading
+    document.getElementById('historical-loading').style.display = 'block';
+    document.getElementById('historical-stats').style.display = 'none';
+    document.getElementById('recent-tickets-button').style.display = 'none';
+    document.getElementById('historical-error').style.display = 'none';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('/api/historical-tickets/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 302 || response.status === 401) {
+                    throw new Error('Authentication required. Please login first.');
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('historical-loading').style.display = 'none';
+            
+            if (data.success) {
+                displayHistoricalData(data.data);
+            } else {
+                showError(data.message || 'Failed to load historical data');
+            }
+        })
+        .catch(error => {
+            document.getElementById('historical-loading').style.display = 'none';
+            showError('Error: ' + error.message);
+        });
+}
+
+function displayHistoricalData(data) {
+    // Update statistics
+    document.getElementById('hist-total').textContent = data.total_tickets || 0;
+    document.getElementById('hist-pending').textContent = data.pending_tickets || 0;
+    document.getElementById('hist-cancelled').textContent = data.cancelled_tickets || 0;
+    document.getElementById('hist-closed').textContent = data.closed_tickets || 0;
+    
+    // Show statistics
+    document.getElementById('historical-stats').style.display = 'flex';
+    
+    // Store recent tickets data globally for modal
+    window.recentTicketsData = data.recent_tickets || [];
+    
+    // Show button to view recent tickets if data exists
+    if (window.recentTicketsData.length > 0) {
+        document.getElementById('recent-tickets-button').style.display = 'block';
+    }
+}
+
+function showRecentTicketsModal() {
+    if (!window.recentTicketsData || window.recentTicketsData.length === 0) {
+        alert('No recent tickets data available');
+        return;
+    }
+    
+    const tbody = document.getElementById('modal-recent-tickets-body');
+    tbody.innerHTML = '';
+    
+    window.recentTicketsData.forEach(ticket => {
+        const row = document.createElement('tr');
+        
+        // Get status and priority names
+        const status = ticket.status && typeof ticket.status === 'object' ? ticket.status.name : ticket.status || 'Unknown';
+        const priority = ticket.priority && typeof ticket.priority === 'object' ? ticket.priority.name : ticket.priority || 'Medium';
+        const requester = ticket.requester && typeof ticket.requester === 'object' ? ticket.requester.name : 'Unknown';
+        const createdTime = ticket.created_time && typeof ticket.created_time === 'object' ? ticket.created_time.display_value : 'Unknown';
+        
+        // Status badge color
+        let statusClass = 'secondary';
+        if (status.toLowerCase().includes('open') || status.toLowerCase().includes('pending') || status.toLowerCase().includes('onhold')) {
+            statusClass = 'warning';
+        } else if (status.toLowerCase().includes('resolved')) {
+            statusClass = 'success';
+        } else if (status.toLowerCase().includes('closed') || status.toLowerCase().includes('cancelled')) {
+            statusClass = 'info';
+        }
+        
+        // Priority badge color
+        let priorityClass = 'secondary';
+        if (priority.toLowerCase().includes('high') || priority.toLowerCase().includes('urgent')) {
+            priorityClass = 'danger';
+        } else if (priority.toLowerCase().includes('medium')) {
+            priorityClass = 'warning';
+        } else if (priority.toLowerCase().includes('low')) {
+            priorityClass = 'success';
+        }
+        
+        row.innerHTML = `
+            <td><strong>${ticket.id || 'N/A'}</strong></td>
+            <td>${ticket.subject || 'No Subject'}</td>
+            <td><span class="badge bg-${statusClass}">${status}</span></td>
+            <td><span class="badge bg-${priorityClass}">${priority}</span></td>
+            <td>${createdTime}</td>
+            <td>${requester}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('recentTicketsModal'));
+    modal.show();
+}
+
+function showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('historical-error').style.display = 'block';
+}
+
+// Auto-load historical data when page loads (only if user is authenticated)
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is authenticated by looking for CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken && csrfToken.value) {
+        loadHistoricalData();
+    } else {
+        showError('Please login to view historical data');
+    }
+});
+
+// Edit ticket modal functions
+function openEditModal(ticketId, title, description, priority, status) {
+    document.getElementById('edit-ticket-id').value = ticketId;
+    document.getElementById('edit-title').value = title;
+    document.getElementById('edit-description').value = description;
+    document.getElementById('edit-priority').value = priority;
+    document.getElementById('edit-status').value = status;
+    
+    // Update form action
+    document.getElementById('editTicketForm').action = `/ticket/${ticketId}/update/`;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('editTicketModal'));
+    modal.show();
+}
+</script>
+
+<!-- Edit Ticket Modal -->
+<div class="modal fade" id="editTicketModal" tabindex="-1" aria-labelledby="editTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editTicketModalLabel">
+                    <i class="fas fa-edit"></i> Edit Ticket
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="editTicketForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="edit-ticket-id" name="ticket_id">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="edit-title" class="form-label">
+                                <i class="fas fa-heading text-primary"></i> Title
+                            </label>
+                            <input type="text" class="form-control" id="edit-title" name="title" required>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="edit-description" class="form-label">
+                                <i class="fas fa-align-left text-primary"></i> Description
+                            </label>
+                            <textarea class="form-control" id="edit-description" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="edit-priority" class="form-label">
+                                <i class="fas fa-exclamation-circle text-primary"></i> Priority
+                            </label>
+                            <select class="form-select" id="edit-priority" name="priority" required>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="edit-status" class="form-label">
+                                <i class="fas fa-info-circle text-primary"></i> Status
+                            </label>
+                            <select class="form-select" id="edit-status" name="status" required>
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

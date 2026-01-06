@@ -1,0 +1,192 @@
+Watching for file changes with StatReloader
+Performing system checks...
+
+System check identified no issues (0 silenced).
+December 01, 2025 - 07:43:49
+Django version 4.2.7, using settings 'customer_portal.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CONTROL-C.
+
+[01/Dec/2025 07:44:46] "GET /office365/ HTTP/1.1" 200 41215
+[01/Dec/2025 07:45:38] "GET /office365/ HTTP/1.1" 200 41215
+[01/Dec/2025 07:47:16] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 07:48:33] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 07:50:46] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 07:53:51] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 07:56:01] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 07:59:26] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:02:24] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:06:33] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:10:02] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:12:21] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:15:18] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 08:17:37] "GET /office365/ HTTP/1.1" 200 43293
+[01/Dec/2025 15:52:51] code 400, message Bad request version ('À\x14À')
+[01/Dec/2025 15:52:51] You're accessing the development server over HTTPS, but it only supports HTTP.
+[01/Dec/2025 15:52:51] code 400, message Bad request syntax ('MGLNDD_54.210.61.83_8000')
+[01/Dec/2025 15:52:51] "MGLNDD_54.210.61.83_8000" 400 -
+[01/Dec/2025 18:41:31] "GET / HTTP/1.1" 302 0
+[01/Dec/2025 18:41:37] "GET / HTTP/1.1" 302 0
+[01/Dec/2025 18:41:38] "GET /login/?next=/ HTTP/1.1" 200 6723
+Not Found: /favicon.ico
+[01/Dec/2025 18:41:50] "GET /favicon.ico HTTP/1.1" 404 4581
+Not Found: /http:/api.ipify.org/
+[01/Dec/2025 18:41:56] "GET http://api.ipify.org/?format=json HTTP/1.1" 404 1818
+Not Found: /www.shadowserver.org:443
+[01/Dec/2025 18:41:59] "CONNECT www.shadowserver.org:443 HTTP/1.1" 404 1827
+[01/Dec/2025 19:49:55] "GET / HTTP/1.1" 302 0
+[01/Dec/2025 19:49:55] "GET /login/?next=/ HTTP/1.1" 200 6723
+[01/Dec/2025 19:53:14] "GET / HTTP/1.1" 302 0
+[01/Dec/2025 19:55:51] code 400, message Bad request version ('À\x14À')
+[01/Dec/2025 19:55:51] You're accessing the development server over HTTPS, but it only supports HTTP.
+[01/Dec/2025 19:58:03] code 400, message Bad request syntax ('SSH-2.0-Go')
+[01/Dec/2025 19:58:03] "SSH-2.0-Go" 400 -
+[01/Dec/2025 19:58:59] code 400, message Bad request version ('À\x14À')
+[01/Dec/2025 19:58:59] You're accessing the development server over HTTPS, but it only supports HTTP.
+[02/Dec/2025 01:04:56] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 02:10:07] code 400, message Bad request syntax ('MGLNDD_54.210.61.83_8000')
+[02/Dec/2025 02:10:07] "MGLNDD_54.210.61.83_8000" 400 -
+[02/Dec/2025 02:38:24] "GET / HTTP/1.1" 200 21542
+[02/Dec/2025 02:38:36] "GET / HTTP/1.1" 200 21542
+[02/Dec/2025 02:38:50] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 02:43:57] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 02:49:06] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 02:54:13] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 02:59:21] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:04:29] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:09:36] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:14:44] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:19:53] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:25:00] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:30:08] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:35:15] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:40:23] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:45:31] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:50:39] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 03:55:46] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:00:55] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:06:04] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:11:11] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:16:19] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:21:27] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:26:43] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:32:19] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:37:32] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:42:49] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:48:09] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:53:26] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 04:58:46] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:03:59] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:09:10] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:14:21] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:19:34] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:24:54] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:30:16] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:35:30] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:40:58] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:46:27] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:51:37] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 05:56:45] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 06:01:53] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 06:07:03] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 06:12:11] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 06:17:22] "GET /office365/ HTTP/1.1" 200 43293
+[02/Dec/2025 06:22:31] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:27:38] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:32:46] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:37:55] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:43:02] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:48:11] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:53:19] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 06:58:27] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:03:40] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:08:59] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:14:16] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:19:29] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:24:46] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:30:11] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:35:21] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 07:40:29] "GET /office365/ HTTP/1.1" 200 43294
+[02/Dec/2025 08:49:07] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 08:49:07] "GET /login/?next=/ HTTP/1.1" 200 6723
+Not Found: /login/favicon.ico
+[02/Dec/2025 08:49:08] "GET /login/favicon.ico HTTP/1.1" 404 4594
+[02/Dec/2025 10:47:08] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 10:47:08,389] - Broken pipe from ('205.210.31.60', 58968)
+[02/Dec/2025 14:52:26] code 400, message Bad request version ('À\x14À')
+[02/Dec/2025 14:52:26] You're accessing the development server over HTTPS, but it only supports HTTP.
+[02/Dec/2025 14:52:26] code 400, message Bad request version ('À\x14À')
+[02/Dec/2025 14:52:26] You're accessing the development server over HTTPS, but it only supports HTTP.
+[02/Dec/2025 14:52:26] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 14:52:26] "GET /login/?next=/ HTTP/1.1" 200 6723
+[02/Dec/2025 14:52:26] "GET /login HTTP/1.1" 301 0
+[02/Dec/2025 14:52:26] "GET /login/ HTTP/1.1" 200 6723
+[02/Dec/2025 15:06:59] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 15:07:00] "GET /login/?next=/ HTTP/1.1" 200 6723
+Not Found: /www.google.com:443
+[02/Dec/2025 15:28:14] "CONNECT www.google.com:443 HTTP/1.1" 404 1807
+[02/Dec/2025 18:19:58] code 400, message Bad request version ('À\x14À')
+[02/Dec/2025 18:19:58] You're accessing the development server over HTTPS, but it only supports HTTP.
+[02/Dec/2025 18:21:38] "GET / HTTP/1.1" 302 0
+Not Found: /manage/account/login
+[02/Dec/2025 18:23:36] "GET /manage/account/login HTTP/1.1" 404 4608
+[02/Dec/2025 18:24:22] "GET /admin/index.html HTTP/1.1" 302 0
+Not Found: /index.html
+[02/Dec/2025 18:25:18] "GET /index.html HTTP/1.1" 404 4578
+Not Found: /+CSCOE+/logon.html
+[02/Dec/2025 18:26:23] "GET /+CSCOE+/logon.html HTTP/1.1" 404 4602
+Not Found: /cgi-bin/login.cgi
+[02/Dec/2025 18:27:32] "GET /cgi-bin/login.cgi HTTP/1.1" 404 4599
+Not Found: /login.htm
+[02/Dec/2025 18:28:39] "GET /login.htm HTTP/1.1" 404 4575
+Not Found: /login.html
+[02/Dec/2025 18:29:47] "GET /login.html HTTP/1.1" 404 4578
+Not Found: /login.jsp
+[02/Dec/2025 18:31:23] "GET /login.jsp HTTP/1.1" 404 4575
+[02/Dec/2025 18:32:23] "GET /login HTTP/1.1" 301 0
+Not Found: /doc/index.html
+[02/Dec/2025 18:33:41] "GET /doc/index.html HTTP/1.1" 404 4590
+Not Found: /remote/login
+[02/Dec/2025 18:34:47] "GET /remote/login HTTP/1.1" 404 4584
+[02/Dec/2025 18:35:53] "GET //admin/login.asp HTTP/1.1" 302 0
+Not Found: /web/
+[02/Dec/2025 18:37:02] "GET /web/ HTTP/1.1" 404 4560
+Not Found: /webpages/login.html
+[02/Dec/2025 18:38:12] "GET //webpages/login.html HTTP/1.1" 404 4605
+[02/Dec/2025 18:39:34] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 18:39:56] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 18:39:56] "GET /login/?next=/ HTTP/1.1" 200 6723
+Not Found: /favicon.ico
+[02/Dec/2025 18:40:06] "GET /favicon.ico HTTP/1.1" 404 4581
+Not Found: /http:/api.ipify.org/
+[02/Dec/2025 18:40:10] "GET http://api.ipify.org/?format=json HTTP/1.1" 404 1818
+Not Found: /www.shadowserver.org:443
+[02/Dec/2025 18:40:17] "CONNECT www.shadowserver.org:443 HTTP/1.1" 404 1827
+[02/Dec/2025 20:03:30] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 20:03:30] "GET /login/?next=/ HTTP/1.1" 200 6723
+[02/Dec/2025 20:05:56] "GET / HTTP/1.1" 302 0
+[02/Dec/2025 20:07:51] code 400, message Bad HTTP/0.9 request type ("\x16\x03\x01\x00{\x01\x00\x00w\x03\x03~'D\x8d$\x1b\x8c\x10ý\x9b\x93¿>õR\x15Ù\x8c½\x06½\x8d{\x8b2EXÐ\x00\x94.\x03\x00\x00\x1aÀ/À+À\x11À\x07À\x13À")
+[02/Dec/2025 20:07:51] You're accessing the development server over HTTPS, but it only supports HTTP.
+[02/Dec/2025 20:10:13] code 400, message Bad request syntax ('SSH-2.0-Go')
+[02/Dec/2025 20:10:13] "SSH-2.0-Go" 400 -
+[02/Dec/2025 20:11:16] code 400, message Bad request version ('À\x14À')
+[02/Dec/2025 20:11:16] You're accessing the development server over HTTPS, but it only supports HTTP.
+[03/Dec/2025 00:00:03] "GET / HTTP/1.1" 302 0
+[03/Dec/2025 00:00:04] "GET /login/?next=/ HTTP/1.1" 200 6723
+[03/Dec/2025 02:24:17] "GET / HTTP/1.1" 200 21542
+Not Found: /favicon.ico
+[03/Dec/2025 02:24:19] "GET /favicon.ico HTTP/1.1" 404 4581
+[03/Dec/2025 02:24:30] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 02:29:22] "GET /office365/email-analytics/ HTTP/1.1" 200 22222
+[03/Dec/2025 02:38:17] "GET /office365/teams-analytics/ HTTP/1.1" 200 24383
+[03/Dec/2025 02:39:09] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 02:39:20] "GET / HTTP/1.1" 200 21542
+[03/Dec/2025 02:44:17] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 02:49:24] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 02:54:31] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 02:59:39] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 03:04:47] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 03:09:55] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 03:15:03] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 03:20:11] "GET /office365/ HTTP/1.1" 200 43294
+[03/Dec/2025 03:21:04] "GET / HTTP/1.1" 302 0

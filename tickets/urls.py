@@ -15,4 +15,5 @@ urlpatterns = [
     path('technicians/add/', views.add_technician, name='add_technician'),
     path('technicians/edit/<int:user_id>/', views.edit_technician, name='edit_technician'),
     path('technicians/delete/<int:user_id>/', views.delete_technician, name='delete_technician'),
+    path('api/historical-tickets/', views.historical_tickets_api, name='historical_tickets_api'),
 ]

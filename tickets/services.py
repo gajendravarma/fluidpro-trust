@@ -1,6 +1,8 @@
 import requests
 import json
 from django.conf import settings
+from datetime import datetime, timedelta
+import time
 
 class ManageEngineService:
     def __init__(self):
@@ -427,6 +429,113 @@ class ManageEngineService:
                 return response.json()
             else:
                 raise Exception(f"Failed to delete ticket: {response.text}")
+        except Exception as e:
+            raise Exception(f"Failed to delete ticket: {str(e)}")
+    
+    def get_historical_tickets(self, months=2):
+        """Get tickets from the last specified months with status breakdown"""
+        url = f"{self.base_url}/requests"
+        
+        # First try to get recent tickets without date filter
+        input_data = {
+            "list_info": {
+                "row_count": 100,  # Get recent tickets
+                "start_index": 1,
+                "fields_required": [
+                    "id", "subject", "status", "priority", "created_time", 
+                    "requester"
+                ]
+            }
+        }
+        
+        try:
+            response = requests.get(url, headers=self.headers, params={'input_data': json.dumps(input_data)})
+            if response.status_code == 200:
+                data = response.json()
+                tickets = data.get('requests', [])
+                
+                # Filter tickets by date in Python (since API date filter might not work)
+                from datetime import datetime, timedelta
+                cutoff_date = datetime.now() - timedelta(days=months * 30)
+                
+                filtered_tickets = []
+                for ticket in tickets:
+                    created_time = ticket.get('created_time', {})
+                    if isinstance(created_time, dict) and 'value' in created_time:
+                        try:
+                            # ManageEngine timestamp is in milliseconds
+                            ticket_date = datetime.fromtimestamp(created_time['value'] / 1000)
+                            if ticket_date >= cutoff_date:
+                                filtered_tickets.append(ticket)
+                        except:
+                            # If date parsing fails, include the ticket
+                            filtered_tickets.append(ticket)
+                    else:
+                        # If no proper date, include the ticket
+                        filtered_tickets.append(ticket)
+                
+                # Process tickets and categorize by status
+                stats = {
+                    'total_tickets': len(filtered_tickets),
+                    'pending_tickets': 0,
+                    'cancelled_tickets': 0,
+                    'closed_tickets': 0,
+                    'in_progress_tickets': 0,
+                    'tickets_by_month': {},
+                    'tickets_by_priority': {'Low': 0, 'Medium': 0, 'High': 0, 'Urgent': 0},
+                    'recent_tickets': filtered_tickets[:10]  # Last 10 tickets for display
+                }
+                
+                for ticket in filtered_tickets:
+                    # Count by status
+                    status = ticket.get('status', {})
+                    if isinstance(status, dict):
+                        status_name = status.get('name', '').lower()
+                    else:
+                        status_name = str(status).lower()
+                    
+                    # Improved status categorization based on actual ManageEngine statuses
+                    if status_name in ['open', 'pending', 'onhold']:
+                        stats['pending_tickets'] += 1
+                    elif status_name in ['cancelled']:
+                        stats['cancelled_tickets'] += 1
+                    elif status_name in ['closed']:
+                        stats['closed_tickets'] += 1
+                    elif 'progress' in status_name or 'assigned' in status_name:
+                        stats['in_progress_tickets'] += 1
+                    else:
+                        # Default unknown statuses to pending
+                        stats['pending_tickets'] += 1
+                    
+                    # Count by priority
+                    priority = ticket.get('priority', {})
+                    if isinstance(priority, dict):
+                        priority_name = priority.get('name', 'Medium')
+                    else:
+                        priority_name = str(priority) if priority else 'Medium'
+                    
+                    if priority_name in stats['tickets_by_priority']:
+                        stats['tickets_by_priority'][priority_name] += 1
+                    
+                    # Count by month
+                    created_time = ticket.get('created_time', {})
+                    if isinstance(created_time, dict) and 'display_value' in created_time:
+                        try:
+                            # Parse the date and group by month
+                            date_str = created_time['display_value']
+                            # Assuming format like "Dec 15, 2023 10:30 AM"
+                            month_year = date_str.split(',')[0] if ',' in date_str else date_str[:6]
+                            stats['tickets_by_month'][month_year] = stats['tickets_by_month'].get(month_year, 0) + 1
+                        except:
+                            pass
+                
+                return stats
+            else:
+                print(f"API Error: {response.status_code} - {response.text}")
+                return None
+        except Exception as e:
+            print(f"Error fetching historical tickets: {e}")
+            return None
         except Exception as e:
             # If delete fails, at least it's in trash
             return {"status": "moved_to_trash", "message": str(e)}

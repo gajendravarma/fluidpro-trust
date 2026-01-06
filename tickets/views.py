@@ -335,3 +335,28 @@ def delete_technician(request, user_id):
         return JsonResponse({'success': True, 'message': 'User deleted successfully'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+
+
+@login_required
+def historical_tickets_api(request):
+    """API endpoint to get historical ticket data for the last 2 months"""
+    try:
+        months = int(request.GET.get('months', 2))
+        service = ManageEngineService()
+        data = service.get_historical_tickets(months=months)
+        
+        if data:
+            return JsonResponse({
+                'success': True,
+                'data': data
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to fetch historical data'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
