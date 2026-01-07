@@ -8,9 +8,23 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3">Teams Analytics</h1>
-                <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Dashboard
-                </a>
+                <div class="d-flex align-items-center">
+                    <!-- Customer Selection Dropdown -->
+                    <form method="post" action="{% url 'office365:dashboard' %}" class="d-flex align-items-center me-3">
+                        {% csrf_token %}
+                        <label for="customer" class="me-2 mb-0">Customer:</label>
+                        <select name="customer" id="customer" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                            {% for customer_key, customer_name in customers %}
+                                <option value="{{ customer_key }}" {% if customer_key == selected_customer %}selected{% endif %}>
+                                    {{ customer_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
             </div>
         </div>
     </div>

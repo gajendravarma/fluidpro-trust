@@ -6,7 +6,22 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <h1 class="h3 mb-4">Office 365 Dashboard</h1>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Office 365 Dashboard</h1>
+                
+                <!-- Customer Selection Dropdown -->
+                <form method="post" class="d-flex align-items-center">
+                    {% csrf_token %}
+                    <label for="customer" class="me-2 mb-0">Customer:</label>
+                    <select name="customer" id="customer" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                        {% for customer_key, customer_name in customers %}
+                            <option value="{{ customer_key }}" {% if customer_key == selected_customer %}selected{% endif %}>
+                                {{ customer_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
         </div>
     </div>
 

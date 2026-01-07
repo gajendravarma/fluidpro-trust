@@ -2,13 +2,24 @@ import requests
 import csv
 import io
 from django.conf import settings
+from .customer_config import get_customer_config
 
 
 class Office365API:
-    def __init__(self):
-        self.tenant_id = getattr(settings, 'OFFICE365_TENANT_ID', '')
-        self.client_id = getattr(settings, 'OFFICE365_CLIENT_ID', '')
-        self.client_secret = getattr(settings, 'OFFICE365_CLIENT_SECRET', '')
+    def __init__(self, customer_key=None):
+        if customer_key:
+            config = get_customer_config(customer_key)
+            if config:
+                self.tenant_id = config['tenant_id']
+                self.client_id = config['client_id']
+                self.client_secret = config['client_secret']
+            else:
+                raise Exception(f"Customer configuration not found: {customer_key}")
+        else:
+            # Fallback to settings for backward compatibility
+            self.tenant_id = getattr(settings, 'OFFICE365_TENANT_ID', '')
+            self.client_id = getattr(settings, 'OFFICE365_CLIENT_ID', '')
+            self.client_secret = getattr(settings, 'OFFICE365_CLIENT_SECRET', '')
         self.access_token = None
 
     def get_access_token(self):
