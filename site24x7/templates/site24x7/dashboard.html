@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+
+{% block title %}Site24x7 Monitoring - Customer Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-chart-line text-success"></i> Site24x7 Monitoring
+            </h1>
+            <p class="text-muted mb-0">Real-time Infrastructure & Application Monitoring</p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-cogs"></i> Monitoring Controls
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 mb-3">
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100" onclick="loadCustomers()">
+                        <i class="fas fa-users"></i> Load Customers
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-success w-100" onclick="loadAllMonitors()">
+                        <i class="fas fa-desktop"></i> All Monitors
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-success w-100" onclick="loadCurrentStatus()">
+                        <i class="fas fa-chart-bar"></i> Current Status
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearData()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row" id="customer-selector" style="display:none;">
+                <div class="col-md-4">
+                    <label for="customer-select" class="form-label"><strong>Select Customer:</strong></label>
+                    <select id="customer-select" class="form-select" onchange="loadCustomerMonitors()">
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4" id="stats-section" style="display:none;">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Customers</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-customers">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Monitors</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-monitors">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-desktop fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Monitors Up</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="monitors-up">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Monitors Down</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="monitors-down">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4" id="customers-card" style="display:none;">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-users"></i> MSP Customers
+                    </h6>
+                    <span class="badge bg-success" id="customers-count">0</span>
+                </div>
+                <div class="card-body" id="customers-content"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow mb-4" id="monitors-card" style="display:none;">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-desktop"></i> Monitors
+                    </h6>
+                    <span class="badge bg-primary" id="monitors-count">0</span>
+                </div>
+                <div class="card-body" id="monitors-content"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card shadow mb-4" id="status-card" style="display:none;">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-chart-bar"></i> Current Status
+                    </h6>
+                    <span class="badge bg-info" id="status-count">0</span>
+                </div>
+                <div class="card-body" id="status-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        let globalStats = { customers: 0, monitors: 0, up: 0, down: 0 };
+        let currentCustomers = [];
+
+        function loadCustomers() {
+            showCard('customers-card');
+            document.getElementById('customers-content').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading customers...</div>';
+            document.getElementById('stats-section').style.display = 'flex';
+
+            fetch('/site24x7/api/data/?type=customers')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    currentCustomers = data.data || data;
+                    displayCustomers(currentCustomers);
+                    updateCustomerSelector(currentCustomers);
+                    updateStats();
+                })
+                .catch(error => {
+                    document.getElementById('customers-content').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</div>`;
+                });
+        }
+
+        function loadAllMonitors() {
+            showCard('monitors-card');
+            document.getElementById('monitors-content').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading monitors...</div>';
+
+            fetch('/site24x7/api/data/?type=monitors')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    displayMonitors(data.data || data);
+                })
+                .catch(error => {
+                    document.getElementById('monitors-content').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</div>`;
+                });
+        }
+
+        function loadCurrentStatus() {
+            showCard('status-card');
+            document.getElementById('status-content').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading status...</div>';
+
+            fetch('/site24x7/api/data/?type=current_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    displayCurrentStatus(data.data || data);
+                })
+                .catch(error => {
+                    document.getElementById('status-content').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</div>`;
+                });
+        }
+
+        function loadCustomerMonitors() {
+            const select = document.getElementById('customer-select');
+            const customerId = select.value;
+            if (!customerId) return;
+
+            showCard('monitors-card');
+            document.getElementById('monitors-content').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading customer monitors...</div>';
+
+            fetch(`/site24x7/api/customer/${customerId}/monitors/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    displayMonitors(data.monitors.data || data.monitors);
+                })
+                .catch(error => {
+                    document.getElementById('monitors-content').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</div>`;
+                });
+        }
+
+        function showCard(cardId) {
+            document.getElementById(cardId).style.display = 'block';
+        }
+
+        function updateCustomerSelector(customers) {
+            const select = document.getElementById('customer-select');
+            select.innerHTML = '<option value="">-- Select Customer --</option>';
+            
+            customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.zaaid || customer.customer_id;
+                option.textContent = customer.customer_name || customer.display_name || 'Unknown Customer';
+                select.appendChild(option);
+            });
+            
+            document.getElementById('customer-selector').style.display = 'block';
+        }
+
+        function displayCustomers(customers) {
+            if (!customers || !customers.length) {
+                document.getElementById('customers-content').innerHTML = '<div class="text-center text-muted py-4">No customers found</div>';
+                return;
+            }
+
+            globalStats.customers = customers.length;
+            document.getElementById('customers-count').textContent = customers.length;
+
+            const html = customers.map(customer => `
+                <div class="border-start border-success border-4 bg-light p-3 mb-3 rounded" style="cursor: pointer;" onclick="selectCustomer('${customer.zaaid || customer.customer_id}')">
+                    <h6 class="mb-2"><i class="fas fa-building text-success"></i> ${customer.customer_name || customer.display_name || 'Unknown Customer'}</h6>
+                    <div class="row">
+                        <div class="col-sm-6"><small class="text-muted">Customer ID:</small> ${customer.zaaid || customer.customer_id || 'N/A'}</div>
+                        <div class="col-sm-6"><small class="text-muted">Status:</small> <span class="badge bg-success">Active</span></div>
+                        <div class="col-12 mt-1"><small class="text-info">Click to view monitors</small></div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('customers-content').innerHTML = html;
+        }
+
+        function displayMonitors(monitors) {
+            if (!monitors || !monitors.length) {
+                document.getElementById('monitors-content').innerHTML = '<div class="text-center text-muted py-4">No monitors found</div>';
+                return;
+            }
+
+            globalStats.monitors = monitors.length;
+            document.getElementById('monitors-count').textContent = monitors.length;
+
+            const html = monitors.map(monitor => {
+                const status = getMonitorStatus(monitor);
+                return `
+                    <div class="border-start border-${status.color} border-4 bg-light p-3 mb-3 rounded">
+                        <h6 class="mb-2"><i class="fas fa-desktop text-${status.color}"></i> ${monitor.display_name || monitor.monitor_name || 'Unknown Monitor'}</h6>
+                        <div class="row">
+                            <div class="col-sm-6"><small class="text-muted">Type:</small> ${monitor.type || monitor.monitor_type || 'N/A'}</div>
+                            <div class="col-sm-6"><small class="text-muted">Status:</small> <span class="badge bg-${status.color}">${status.text}</span></div>
+                            <div class="col-12 mt-1"><small class="text-muted">URL/Host:</small> ${monitor.website || monitor.host_name || 'N/A'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('monitors-content').innerHTML = html;
+        }
+
+        function displayCurrentStatus(statusData) {
+            if (!statusData || !statusData.length) {
+                document.getElementById('status-content').innerHTML = '<div class="text-center text-muted py-4">No status data found</div>';
+                return;
+            }
+
+            document.getElementById('status-count').textContent = statusData.length;
+
+            const html = statusData.map(status => {
+                const statusInfo = getStatusInfo(status);
+                return `
+                    <div class="border-start border-${statusInfo.color} border-4 bg-light p-3 mb-3 rounded col-md-6 d-inline-block">
+                        <h6 class="mb-2"><i class="fas fa-chart-bar text-${statusInfo.color}"></i> ${status.monitor_name || status.display_name || 'Unknown Monitor'}</h6>
+                        <div class="row">
+                            <div class="col-sm-6"><small class="text-muted">Status:</small> <span class="badge bg-${statusInfo.color}">${statusInfo.text}</span></div>
+                            <div class="col-sm-6"><small class="text-muted">Response Time:</small> ${status.response_time || 'N/A'} ms</div>
+                            <div class="col-12 mt-1"><small class="text-muted">Last Check:</small> ${formatDate(status.last_polled_time)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('status-content').innerHTML = `<div class="row">${html}</div>`;
+        }
+
+        function getMonitorStatus(monitor) {
+            const status = monitor.status || monitor.monitor_status || 0;
+            switch(status) {
+                case 0: return { color: 'success', text: 'Up' };
+                case 1: return { color: 'danger', text: 'Down' };
+                case 2: return { color: 'warning', text: 'Warning' };
+                default: return { color: 'secondary', text: 'Unknown' };
+            }
+        }
+
+        function getStatusInfo(status) {
+            const statusCode = status.status || 0;
+            switch(statusCode) {
+                case 0: return { color: 'success', text: 'Up' };
+                case 1: return { color: 'danger', text: 'Down' };
+                case 2: return { color: 'warning', text: 'Warning' };
+                default: return { color: 'secondary', text: 'Unknown' };
+            }
+        }
+
+        function selectCustomer(customerId) {
+            document.getElementById('customer-select').value = customerId;
+            loadCustomerMonitors();
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            return new Date(timestamp).toLocaleString();
+        }
+
+        function updateStats() {
+            document.getElementById('total-customers').textContent = globalStats.customers;
+            document.getElementById('total-monitors').textContent = globalStats.monitors;
+            document.getElementById('monitors-up').textContent = globalStats.up;
+            document.getElementById('monitors-down').textContent = globalStats.down;
+        }
+
+        function clearData() {
+            const cards = ['customers-card', 'monitors-card', 'status-card'];
+            cards.forEach(card => document.getElementById(card).style.display = 'none');
+            document.getElementById('stats-section').style.display = 'none';
+            document.getElementById('customer-selector').style.display = 'none';
+            globalStats = { customers: 0, monitors: 0, up: 0, down: 0 };
+        }
+    </script>
+{% endblock %}

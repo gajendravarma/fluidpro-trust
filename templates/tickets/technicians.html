@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+
+{% block title %}Technicians - IT Support Portal{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">{% if show_all_users %}All Users{% else %}IT Technicians{% endif %}</h1>
+            <p class="text-muted mb-0">{% if show_all_users %}View all system users{% else %}Manage support team members and users{% endif %}</p>
+        </div>
+        <div>
+            {% if show_all_users %}
+                <a href="{% url 'technicians' %}" class="btn btn-info">
+                    <i class="fas fa-user-cog"></i> View Technicians
+                </a>
+            {% else %}
+                <a href="{% url 'all_users' %}" class="btn btn-info">
+                    <i class="fas fa-users"></i> View All Users
+                </a>
+            {% endif %}
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="fas fa-user-plus"></i> Add User
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">{% if show_all_users %}{% if search_query %}Search Results{% else %}Total Users{% endif %}{% else %}Total Technicians{% endif %}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{% if show_all_users %}{% if search_query %}{{ current_page_count }}{% else %}{{ total_users }}{% endif %}{% else %}{{ technicians|length }}{% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">{% if show_all_users %}Current Page{% else %}Active Users{% endif %}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{% if show_all_users %}{{ current_page_count }}{% else %}{{ technicians|length }}{% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Departments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">3</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">{% if show_all_users %}Page {{ current_page }}{% else %}Online Now{% endif %}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{% if show_all_users %}of {{ total_users|floatformat:0 }}{% else %}{{ technicians|length|floatformat:0 }}{% endif %}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technicians Table -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-users"></i> {% if show_all_users %}All Users{% else %}Team Members{% endif %}
+            </h6>
+            <div class="d-flex gap-2">
+                {% if show_all_users %}
+                    <form method="GET" class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search users..." name="search" value="{{ search_query }}" style="width: 200px;">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        {% if search_query %}
+                            <a href="{% url 'all_users' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        {% endif %}
+                    </form>
+                {% else %}
+                    <input type="text" class="form-control form-control-sm" placeholder="Search technicians..." id="searchInput" style="width: 200px;">
+                {% endif %}
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshTechnicians()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if technicians %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="techniciansTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th><i class="fas fa-user"></i> {% if show_all_users %}User{% else %}Technician{% endif %}</th>
+                                <th><i class="fas fa-envelope"></i> Contact</th>
+                                <th><i class="fas fa-building"></i> Department</th>
+                                <th><i class="fas fa-circle"></i> Status</th>
+                                <th><i class="fas fa-calendar"></i> Last Active</th>
+                                <th><i class="fas fa-cogs"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tech in technicians %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ tech.name|default:"Unknown User" }}</div>
+                                            <small class="text-muted">ID: {{ tech.id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div><i class="fas fa-envelope me-1"></i>{{ tech.email_id|default:"No email" }}</div>
+                                        <small class="text-muted"><i class="fas fa-phone me-1"></i>{{ tech.phone|default:"No phone" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info rounded-pill">
+                                        <i class="fas fa-building me-1"></i>{{ tech.department|default:"IT Support" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-circle me-1"></i>Active
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ tech.last_login|default:"Recently"|date:"M d, H:i" }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ tech.id }}, '{{ tech.name }}', '{{ tech.email_id }}', '{{ tech.phone|default:"" }}', '{{ tech.company|default:"" }}')" title="Edit User">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewUserDetails({{ tech.id }})" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser({{ tech.id }}, '{{ tech.name }}')" title="Delete User">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No {% if show_all_users %}Users{% else %}Technicians{% endif %} Found</h5>
+                    <p class="text-muted">No {% if show_all_users %}user{% else %}technician{% endif %} data is currently available from ManageEngine.</p>
+                    <button class="btn btn-primary" onclick="refreshTechnicians()">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Pagination for All Users -->
+        {% if show_all_users and technicians %}
+        <div class="card-footer">
+            <nav aria-label="Users pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ prev_page }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ current_page }}</span>
+                    </li>
+                    
+                    {% if has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ next_page }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-primary"></i> Add New User
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-envelope"></i> Email Address *</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" class="form-control" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-building"></i> Company</label>
+                        <select class="form-control" name="company">
+                            <option value="">Select Company (Optional)</option>
+                            {% for company in companies %}
+                                <option value="{{ company.name }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Select the company this user belongs to (e.g., Wepsol, MarketExcel, C G Logistics)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddUser()">
+                    <i class="fas fa-save"></i> Add User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit text-primary"></i> Edit User
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" name="user_id" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                        <input type="text" class="form-control" name="name" id="editUserName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-envelope"></i> Email Address *</label>
+                        <input type="email" class="form-control" name="email" id="editUserEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" class="form-control" name="phone" id="editUserPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-building"></i> Company</label>
+                        <select class="form-control" name="company" id="editUserCompany">
+                            <option value="">Select Company (Optional)</option>
+                            {% for company in companies %}
+                                <option value="{{ company.name }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Select the company this user belongs to</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditUser()">
+                    <i class="fas fa-save"></i> Update User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-trash text-danger"></i> Confirm User Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This action cannot be undone and will permanently remove the user from the system.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteUser">
+                    <i class="fas fa-trash"></i> Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentUserId = null;
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#techniciansTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Add user
+function submitAddUser() {
+    const formData = new FormData(document.getElementById('addUserForm'));
+    
+    fetch('/technicians/add/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error: ' + error);
+    });
+}
+
+// Edit user
+function editUser(userId, userName, userEmail, userPhone, userCompany) {
+    currentUserId = userId;
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUserName').value = userName;
+    document.getElementById('editUserEmail').value = userEmail;
+    document.getElementById('editUserPhone').value = userPhone || '';
+    
+    // Set company dropdown
+    const companySelect = document.getElementById('editUserCompany');
+    if (companySelect && userCompany) {
+        companySelect.value = userCompany;
+    }
+    
+    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+}
+
+function submitEditUser() {
+    const formData = new FormData(document.getElementById('editUserForm'));
+    
+    fetch(`/technicians/edit/${currentUserId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error: ' + error);
+    });
+}
+
+// Delete user
+function deleteUser(userId, userName) {
+    currentUserId = userId;
+    document.getElementById('deleteUserName').textContent = userName;
+    new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+}
+
+document.getElementById('confirmDeleteUser').addEventListener('click', function() {
+    if (currentUserId) {
+        fetch(`/technicians/delete/${currentUserId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+            if (data.success) {
+                showAlert('success', data.message);
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', 'Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+            showAlert('danger', 'Error: ' + error);
+        });
+    }
+});
+
+// Refresh technicians
+function refreshTechnicians() {
+    location.reload();
+}
+
+// View user details
+function viewUserDetails(userId) {
+    // Find the user data from the table
+    const rows = document.querySelectorAll('#techniciansTable tbody tr');
+    let userData = null;
+    
+    for (let row of rows) {
+        const editBtn = row.querySelector('button[onclick*="editUser"]');
+        if (editBtn && editBtn.getAttribute('onclick').includes(`editUser(${userId},`)) {
+            const cells = row.querySelectorAll('td');
+            userData = {
+                id: userId,
+                name: cells[0].querySelector('.fw-bold').textContent.trim(),
+                email: cells[1].querySelector('small').textContent.trim(),
+                phone: cells[1].querySelectorAll('small')[1] ? cells[1].querySelectorAll('small')[1].textContent.trim() : 'N/A',
+                department: cells[2].textContent.trim(),
+                status: cells[3].textContent.trim(),
+                lastActive: cells[4].textContent.trim()
+            };
+            break;
+        }
+    }
+    
+    if (userData) {
+        showUserDetailsModal(userData);
+    } else {
+        showAlert('warning', 'User details not found');
+    }
+}
+
+function showUserDetailsModal(userData) {
+    const modalHtml = `
+        <div class="modal fade" id="viewUserModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user text-info"></i> User Details
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-user"></i> Full Name</label>
+                                    <p class="form-control-plaintext">${userData.name}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-envelope"></i> Email</label>
+                                    <p class="form-control-plaintext">${userData.email}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-phone"></i> Phone</label>
+                                    <p class="form-control-plaintext">${userData.phone}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-building"></i> Department</label>
+                                    <p class="form-control-plaintext">${userData.department}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-circle"></i> Status</label>
+                                    <p class="form-control-plaintext">${userData.status}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold"><i class="fas fa-calendar"></i> Last Active</label>
+                                    <p class="form-control-plaintext">${userData.lastActive}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('viewUserModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('viewUserModal')).show();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+}
+</script>
+
+<style>
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.text-xs { font-size: 0.7rem; }
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #4e73df, #224abe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+.table-hover tbody tr:hover { background-color: rgba(0,0,0,.075); }
+</style>
+{% endblock %}

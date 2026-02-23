@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Roles{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Manage Roles</h1>
+        </div>
+    </div>
+
+    <!-- Create Role Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Create New Role</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'rbac:create_role' %}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="name">Role Name (Internal):</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="display_name">Display Name:</label>
+                                    <input type="text" class="form-control" name="display_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="description">Description:</label>
+                                    <input type="text" class="form-control" name="description">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Role</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Roles -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Role Permissions</h6>
+                    <a href="{% url 'rbac:admin_dashboard' %}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% for role in roles %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">{{ role.display_name }}</h6>
+                            <small class="text-muted">{{ role.description }}</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for package in packages %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="border p-3 rounded">
+                                        <h6 class="font-weight-bold">{{ package.display_name }}</h6>
+                                        <form method="post" action="{% url 'rbac:update_role_permissions' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="role_id" value="{{ role.id }}">
+                                            <input type="hidden" name="package_id" value="{{ package.id }}">
+                                            
+                                            {% for permission in permissions %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="permissions" value="{{ permission.id }}"
+                                                       id="perm_{{ role.id }}_{{ package.id }}_{{ permission.id }}"
+                                                       {% for rpp in role.rolepackagepermission_set.all %}
+                                                           {% if rpp.package.id == package.id %}
+                                                               {% for perm in rpp.permissions.all %}
+                                                                   {% if perm.id == permission.id %}checked{% endif %}
+                                                               {% endfor %}
+                                                           {% endif %}
+                                                       {% endfor %}>
+                                                <label class="form-check-label" for="perm_{{ role.id }}_{{ package.id }}_{{ permission.id }}">
+                                                    {{ permission.display_name }}
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                            
+                                            <button type="submit" class="btn btn-sm btn-primary mt-2">Update</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

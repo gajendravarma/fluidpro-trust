@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Run Script - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Run Script on Device</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="{{ form.device_id.id_for_label }}">Device ID *</label>
+                            {{ form.device_id }}
+                            <small class="form-text text-muted">Enter the ID of the device to run the script on</small>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="{{ form.script_type.id_for_label }}">Script Type *</label>
+                            {{ form.script_type }}
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="{{ form.script_content.id_for_label }}">Script Content *</label>
+                            {{ form.script_content }}
+                            <small class="form-text text-muted">Enter the script content to execute</small>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Execute Script</button>
+                            <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ company_name }} Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-building" aria-hidden="true"></i> {{ company_name }} Dashboard</h1>
+            <p class="text-muted mb-0">Real-time infrastructure and service monitoring</p>
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> {{ error }}</div>
+    {% else %}
+
+        <!-- Pulseway - Device Status -->
+        <h2 class="h5 mb-3"><i class="fas fa-server text-info" aria-hidden="true"></i> Device Status</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary mb-1">Total Devices</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-desktop fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success mb-1">Online</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ online_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger mb-1">Offline</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ offline_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold mb-1" style="color: #856404;">Pending Patches</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_patches|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ManageEngine - Ticket Status -->
+        <h2 class="h5 mb-3"><i class="fas fa-ticket-alt text-danger" aria-hidden="true"></i> Ticket Status (Last 30 Days)</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Open</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ open_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Progress</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ in_progress_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Pending</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Resolved</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ resolved_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Closed</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ closed_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Office 365 - License Status -->
+        <h5 class="mb-3"><i class="fas fa-key text-success"></i> Office 365 Licenses</h5>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Licenses</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-certificate fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Assigned</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ consumed_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Available</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ available_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Messages -->
+        {% if ticket_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Tickets:</strong> {{ ticket_error }}</div>
+        {% endif %}
+        {% if device_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Devices:</strong> {{ device_error }}</div>
+        {% endif %}
+        {% if license_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Licenses:</strong> {{ license_error }}</div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

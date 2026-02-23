@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Admin Dashboard</h1>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Packages</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_packages }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Active Accesses</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_accesses }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-key fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'rbac:manage_users' %}" class="btn btn-primary btn-block">
+                                <i class="fas fa-users"></i> Manage User Access
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/admin/" class="btn btn-info btn-block">
+                                <i class="fas fa-cog"></i> Django Admin
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Access Assignments -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Access Assignments</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Package</th>
+                                    <th>Permissions</th>
+                                    <th>Assigned By</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in recent_assignments %}
+                                <tr>
+                                    <td>{{ assignment.user.username }}</td>
+                                    <td>{{ assignment.package.display_name }}</td>
+                                    <td>
+                                        {% if assignment.can_create %}<span class="badge bg-success">Create</span>{% endif %}
+                                        {% if assignment.can_read %}<span class="badge bg-info">Read</span>{% endif %}
+                                        {% if assignment.can_update %}<span class="badge bg-warning">Update</span>{% endif %}
+                                        {% if assignment.can_delete %}<span class="badge bg-danger">Delete</span>{% endif %}
+                                    </td>
+                                    <td>{{ assignment.assigned_by.username|default:"System" }}</td>
+                                    <td>{{ assignment.assigned_at|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        {% if assignment.is_enabled %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No recent assignments</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
