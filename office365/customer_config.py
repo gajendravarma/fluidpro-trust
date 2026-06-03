@@ -7,14 +7,14 @@ import os
 CUSTOMER_CONFIGS = {
     'cgl': {
         'name': 'C G Logistics',
-        'tenant_id': os.getenv('CGL_TENANT_ID', 'd3309569-d52c-437d-bc17-c27fe7797af8'),
-        'client_id': os.getenv('CGL_CLIENT_ID', '42e86988-b70f-4c79-9091-ccf3f27a6573'),
+        'tenant_id': os.getenv('CGL_TENANT_ID', ''),
+        'client_id': os.getenv('CGL_CLIENT_ID', ''),
         'client_secret': os.getenv('CGL_CLIENT_SECRET', ''),
     },
     'wepsol': {
         'name': 'Wepsol',
-        'tenant_id': os.getenv('WEPSOL_TENANT_ID', '7eeca940-4f38-476c-af25-9bb3b097925f'),
-        'client_id': os.getenv('WEPSOL_CLIENT_ID', 'e11a6028-2d2b-4ed0-a735-732fa41e129b'),
+        'tenant_id': os.getenv('WEPSOL_TENANT_ID', ''),
+        'client_id': os.getenv('WEPSOL_CLIENT_ID', ''),
         'client_secret': os.getenv('WEPSOL_CLIENT_SECRET', ''),
     },
     'market-excel': {

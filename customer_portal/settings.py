@@ -6,7 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'your-secret-key-here'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me')
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
@@ -121,12 +121,12 @@ LOGGING = {
 }
 
 # ManageEngine ServiceDesk API (tickets)
-MANAGE_ENGINE_BASE_URL = 'https://fluidpro.wepsol.com:8080/api/v3'
-MANAGE_ENGINE_AUTH_TOKEN = 'B6E3626D-BC0A-461C-B78C-ECDC79021ED0'
+MANAGE_ENGINE_BASE_URL  = os.environ.get('MANAGE_ENGINE_BASE_URL', 'https://fluidpro.wepsol.com:8080/api/v3')
+MANAGE_ENGINE_AUTH_TOKEN = os.environ.get('MANAGE_ENGINE_AUTH_TOKEN', '')
 
 # ManageEngine MDM API (On-Premises)
 MDM_API_BASE_URL = os.environ.get('MDM_API_BASE_URL', 'https://mdm.wepsol.com:9041')
-MDM_API_KEY      = os.environ.get('MDM_API_KEY', '7e8111e5-ca4c-4d04-9356-4b20074f9731')
+MDM_API_KEY      = os.environ.get('MDM_API_KEY', '')
 
 # License Configuration
 LICENSE_CONFIG = {
@@ -156,9 +156,9 @@ LICENSE_CONFIG = {
 }
 
 # Pulseway API Configuration
-PULSEWAY_ENDPOINT = 'https://fluidpulse.pulseway.com/api/v3'
-PULSEWAY_TOKEN_ID = '8137df64d8d949f693364bd46522883f'
-PULSEWAY_TOKEN_SECRET = 'f42f47339208469da07bc3c62998e879ac53acd7dd6f4928837bb2392ca2b9f9'
+PULSEWAY_ENDPOINT     = os.environ.get('PULSEWAY_ENDPOINT', 'https://fluidpulse.pulseway.com/api/v3')
+PULSEWAY_TOKEN_ID     = os.environ.get('PULSEWAY_TOKEN_ID', '')
+PULSEWAY_TOKEN_SECRET = os.environ.get('PULSEWAY_TOKEN_SECRET', '')
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
