@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MDM Portal{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: { extend: { fontSize: { base: '0.875rem', sm: '0.8rem', lg: '1rem', xl: '1.1rem' } } }
+      }
+    </script>
+    <style>
+      html { font-size: 14px; }
+      body { font-size: 0.875rem; }
+      .text-2xl { font-size: 1.3rem !important; }
+      .text-xl  { font-size: 1.1rem !important; }
+      .text-lg  { font-size: 1rem   !important; }
+      .text-base{ font-size: 0.875rem !important; }
+      .text-sm  { font-size: 0.8rem  !important; }
+      .text-xs  { font-size: 0.72rem !important; }
+      .py-4 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+      .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+      .p-4  { padding: 0.75rem !important; }
+      .p-6  { padding: 1rem   !important; }
+      .p-8  { padding: 1.25rem!important; }
+      @media (max-width: 1366px) { html { font-size: 13px; } }
+      @media (max-width: 1024px) { html { font-size: 12.5px; } }
+      @media (max-width: 768px)  { html { font-size: 12px; } }
+    </style>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-mobile-alt text-2xl"></i>
+                    <h1 class="text-xl font-bold">MDM Portal</h1>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="{% url 'mdm:dashboard' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{% url 'mdm:license_dashboard' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-key mr-2"></i>Licenses
+                    </a>
+                    <a href="{% url 'mdm:customer_list' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-users mr-2"></i>Customers
+                    </a>
+                    <a href="{% url 'mdm:device_list' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-mobile mr-2"></i>Devices
+                    </a>
+                    <a href="{% url 'mdm:user_list' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-user-friends mr-2"></i>Users
+                    </a>
+                    <a href="{% url 'mdm:app_policies' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-shield-alt mr-2"></i>App Policies
+                    </a>
+                    <a href="{% url 'mdm:profiles_list' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-cogs mr-2"></i>Profiles
+                    </a>
+                    <a href="{% url 'mdm:reports' %}" class="hover:text-blue-200 transition-colors">
+                        <i class="fas fa-chart-bar mr-2"></i>Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 px-4">
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-2">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script>
+        // Auto-refresh live status every 30 seconds
+        setInterval(function() {
+            if (window.location.pathname === '/') {
+                fetch('/api/live-status/')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateLiveStatus(data);
+                    })
+                    .catch(error => console.error('Error fetching live status:', error));
+            }
+        }, 30000);
+
+        function updateLiveStatus(data) {
+            // Update status indicators on dashboard
+            data.customers.forEach(customer => {
+                const statusElement = document.getElementById(`status-${customer.customer_id}`);
+                if (statusElement) {
+                    statusElement.className = customer.status === 'online' 
+                        ? 'inline-block w-3 h-3 bg-green-500 rounded-full mr-2'
+                        : 'inline-block w-3 h-3 bg-red-500 rounded-full mr-2';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}Profiles & Config — {{ cust_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1 small">
+        <li class="breadcrumb-item"><a href="{% url 'site24x7:site24x7_dashboard' %}">Site24x7</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'site24x7:monitor_list' zaaid %}">{{ cust_name }}</a></li>
+        <li class="breadcrumb-item active">Profiles</li>
+      </ol>
+    </nav>
+    <h1 class="h3 mb-0 fw-bold"><i class="fas fa-sliders-h text-info me-2"></i>Profiles &amp; Configuration</h1>
+    <p class="text-muted mb-0 small">{{ cust_name }} — location profiles, notification rules, thresholds, groups &amp; tags</p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <!-- Nav tabs -->
+  <ul class="nav nav-tabs mb-3" id="profileTabs">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#location">
+      <i class="fas fa-map-marker-alt me-1"></i>Location Profiles
+      <span class="badge bg-secondary ms-1">{{ location_profiles|length }}</span>
+    </a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#notification">
+      <i class="fas fa-bell me-1"></i>Notification Profiles
+      <span class="badge bg-secondary ms-1">{{ notification_profiles|length }}</span>
+    </a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#threshold">
+      <i class="fas fa-chart-line me-1"></i>Threshold Profiles
+      <span class="badge bg-secondary ms-1">{{ threshold_profiles|length }}</span>
+    </a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#usergroups">
+      <i class="fas fa-users me-1"></i>User Groups
+      <span class="badge bg-secondary ms-1">{{ user_groups|length }}</span>
+    </a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#mongroups">
+      <i class="fas fa-layer-group me-1"></i>Monitor Groups
+      <span class="badge bg-secondary ms-1">{{ monitor_groups|length }}</span>
+    </a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tags">
+      <i class="fas fa-tags me-1"></i>Tags
+      <span class="badge bg-secondary ms-1">{{ tags|length }}</span>
+    </a></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- Location Profiles -->
+    <div class="tab-pane fade show active" id="location">
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>Profile Name</th><th>Primary Location</th><th>Secondary Locations</th><th>Check Frequency</th></tr></thead>
+            <tbody>
+              {% for p in location_profiles %}
+              <tr>
+                <td class="fw-semibold small">{{ p.profile_name }}</td>
+                <td class="small text-muted">{{ p.primary_location }}</td>
+                <td class="small text-muted">
+                  {% if p.secondary_locations %}{{ p.secondary_locations|join:", " }}{% else %}—{% endif %}
+                </td>
+                <td class="small text-muted">{{ p.secondary_check_frequency|default:"—" }} min</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-3">No profiles found</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Profiles -->
+    <div class="tab-pane fade" id="notification">
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>Profile Name</th><th>Profile ID</th><th>Notify After (errors)</th></tr></thead>
+            <tbody>
+              {% for p in notification_profiles %}
+              <tr>
+                <td class="fw-semibold small">{{ p.profile_name }}</td>
+                <td class="small text-muted font-monospace">{{ p.profile_id }}</td>
+                <td class="small text-muted">{{ p.notify_after_number|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted py-3">No profiles found</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Threshold Profiles -->
+    <div class="tab-pane fade" id="threshold">
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <div style="max-height:500px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top"><tr><th>Profile Name</th><th>Monitor Type</th><th>Profile ID</th></tr></thead>
+              <tbody>
+                {% for p in threshold_profiles %}
+                <tr>
+                  <td class="fw-semibold small">{{ p.profile_name }}</td>
+                  <td><span class="badge bg-light text-dark border small">{{ p.type|default:"—" }}</span></td>
+                  <td class="small text-muted font-monospace">{{ p.profile_id }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted py-3">No profiles found</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Groups -->
+    <div class="tab-pane fade" id="usergroups">
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>Group Name</th><th class="text-center">Members</th><th>Master</th><th>Group ID</th></tr></thead>
+            <tbody>
+              {% for g in user_groups %}
+              <tr>
+                <td class="fw-semibold small">{{ g.display_name }}</td>
+                <td class="text-center"><span class="badge bg-primary">{{ g.users|length }}</span></td>
+                <td>{% if g.is_master_group %}<span class="badge bg-success">Yes</span>{% else %}—{% endif %}</td>
+                <td class="small text-muted font-monospace">{{ g.user_group_id }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-3">No groups found</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitor Groups -->
+    <div class="tab-pane fade" id="mongroups">
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <div style="max-height:500px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top"><tr><th>Group Name</th><th>Description</th><th class="text-center">Type</th><th class="text-center">Threshold</th></tr></thead>
+              <tbody>
+                {% for g in monitor_groups %}
+                <tr>
+                  <td class="fw-semibold small">{{ g.display_name|default:"—" }}</td>
+                  <td class="small text-muted">{{ g.description|default:"—" }}</td>
+                  <td class="text-center"><span class="badge bg-light text-dark border">{{ g.group_type }}</span></td>
+                  <td class="text-center small text-muted">{{ g.health_threshold_count|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-3">No groups found</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="tab-pane fade" id="tags">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-2">
+            {% for t in tags %}
+            <span class="badge rounded-pill px-3 py-2"
+                  style="background-color:{{ t.tag_color|default:'#6c757d' }};font-size:.85rem;">
+              {{ t.tag_name }}
+            </span>
+            {% empty %}
+            <div class="text-muted small">No tags defined</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

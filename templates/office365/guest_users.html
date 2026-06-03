@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Guest Users - Microsoft 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-user-friends text-secondary me-2"></i>Guest / External Users</h1>
+      <p class="text-muted mb-0 small">External accounts invited to this tenant</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'office365:user_management' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-users-cog me-1"></i>Internal Users
+      </a>
+      <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}{% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+
+  {% if is_demo %}
+  <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Demo mode — Office 365 credentials not configured.</div>
+  {% endif %}
+
+  <!-- Summary cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center border-secondary">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-secondary">{{ total_guests }}</div>
+          <div class="small text-muted">Total Guest Accounts</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center border-success">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-success">{{ active_guests }}</div>
+          <div class="small text-muted">Active Guests</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center border-warning">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-warning">{{ pending_guests }}</div>
+          <div class="small text-muted">Pending Acceptance</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Guest</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Invite State</th>
+              <th>Last Sign-in</th>
+              <th>Created</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in guests %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ g.display_name }}</div>
+                <small class="text-muted">{{ g.upn }}</small>
+              </td>
+              <td>{{ g.mail|default:"—" }}</td>
+              <td>
+                {% if g.account_enabled %}
+                  <span class="badge bg-success">Enabled</span>
+                {% else %}
+                  <span class="badge bg-danger">Disabled</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if g.external_state == 'PendingAcceptance' %}
+                  <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                {% elif g.external_state == 'Accepted' %}
+                  <span class="badge bg-success">Accepted</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ g.external_state|default:"—" }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if g.last_sign_in %}
+                  <small>{{ g.last_sign_in|slice:":10" }}</small>
+                {% else %}
+                  <small class="text-muted">Never</small>
+                {% endif %}
+              </td>
+              <td><small>{{ g.created|slice:":10"|default:"—" }}</small></td>
+              <td class="text-end">
+                {% if g.account_enabled %}
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="disable">
+                  <input type="hidden" name="user_id" value="{{ g.id }}">
+                  <input type="hidden" name="user_name" value="{{ g.display_name }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('Disable guest account for {{ g.display_name }}?')"
+                          title="Disable guest">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </form>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">No guest accounts found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}MDM Access Required{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="ri-smartphone-line font-size-72 text-muted"></i>
+                    </div>
+                    
+                    <h4 class="mb-3">MDM Access Not Available</h4>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="alert-heading">{{ company_name }}</h6>
+                        <p class="mb-0">{{ message }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <p class="text-muted mb-3">
+                            Mobile Device Management (MDM) services are not currently configured for your organization.
+                        </p>
+                        
+                        <div class="row text-start">
+                            <div class="col-12">
+                                <h6>To get MDM access:</h6>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="ri-check-line text-success me-2"></i>
+                                        Contact your system administrator
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="ri-check-line text-success me-2"></i>
+                                        Verify your company is enrolled in MDM services
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="ri-check-line text-success me-2"></i>
+                                        Ensure your account has MDM package access
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'mdm:rbac:company_dashboard' %}" class="btn btn-primary me-2">
+                            <i class="ri-arrow-left-line me-1"></i>Back to Dashboard
+                        </a>
+                        <a href="mailto:support@fluidtrust.com" class="btn btn-outline-secondary">
+                            <i class="ri-mail-line me-1"></i>Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

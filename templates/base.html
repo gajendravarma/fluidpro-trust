@@ -1,0 +1,768 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="IT Support Portal – Real-time monitoring of devices, tickets, and backup status.">
+    <title>{% block title %}Customer Portal{% endblock %}</title>
+    <link rel="icon" href="{% static 'images/fluidtrust_logo.png' %}" type="image/png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'css/global-scale.css' %}" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --shadow-medium: 0 15px 35px rgba(0, 0, 0, 0.1);
+            --shadow-heavy: 0 20px 40px rgba(0, 0, 0, 0.15);
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html {
+            font-size: 14px; /* base rem anchor — consistent across all screens */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            line-height: 1.5;
+            color: #2d3748;
+            font-size: 0.875rem;
+        }
+
+        /* Glass morphism effects */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+        }
+
+        /* Modern navbar */
+        .navbar {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0.5rem 0;
+            transition: var(--transition);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.15rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #4a5568 !important;
+            padding: 0.4rem 0.75rem !important;
+            border-radius: 8px;
+            margin: 0 0.1rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background: var(--glass-bg);
+            color: #667eea !important;
+            transform: translateY(-2px);
+        }
+
+        .navbar-nav .nav-link i {
+            margin-right: 0.5rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* Modern cards */
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-medium);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Gradient borders */
+        .border-left-primary {
+            border-left: 4px solid transparent;
+            background: linear-gradient(white, white) padding-box, var(--primary-gradient) border-box;
+        }
+
+        .border-left-success {
+            border-left: 4px solid transparent;
+            background: linear-gradient(white, white) padding-box, var(--success-gradient) border-box;
+        }
+
+        .border-left-info {
+            border-left: 4px solid transparent;
+            background: linear-gradient(white, white) padding-box, var(--warning-gradient) border-box;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid transparent;
+            background: linear-gradient(white, white) padding-box, var(--danger-gradient) border-box;
+        }
+
+        /* Modern buttons */
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            border: none;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-gradient);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger-gradient);
+            color: white;
+        }
+
+        /* Form controls */
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Tables */
+        .table {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .table th {
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .table td {
+            padding: 0.5rem 0.75rem;
+            border-color: #f1f5f9;
+            vertical-align: middle;
+            font-size: 0.85rem;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.01);
+            transition: var(--transition);
+        }
+
+        /* Alerts */
+        .alert {
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(75, 181, 67, 0.1);
+            border-left-color: #4bb543;
+            color: #2d5016;
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: rgba(13, 202, 240, 0.1);
+            border-left-color: #0dcaf0;
+            color: #055160;
+        }
+
+        /* Dropdown */
+        .dropdown-menu {
+            border: none;
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-medium);
+            padding: 0.5rem;
+        }
+
+        .dropdown-item {
+            border-radius: 8px;
+            margin: 0.25rem 0;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .pulse-on-hover:hover {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        /* Utility classes */
+        .text-gradient-primary {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .bg-gradient-primary {
+            background: var(--primary-gradient);
+        }
+
+        .shadow-modern {
+            box-shadow: var(--shadow-medium);
+        }
+
+        .shadow-heavy {
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            html { font-size: 13px; }
+        }
+
+        @media (max-width: 992px) {
+            html { font-size: 13px; }
+            .card-body { padding: 1rem; }
+        }
+
+        @media (max-width: 768px) {
+            html { font-size: 12px; }
+            .card-body { padding: 0.75rem; }
+            .navbar-nav .nav-link { padding: 0.4rem 0.75rem !important; }
+            .btn { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+        }
+
+        /* Skip link accessibility */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: #fff;
+            padding: 8px 16px;
+            z-index: 1000;
+            border-radius: 0 0 8px 0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .skip-link:focus {
+            top: 0;
+            color: #fff;
+        }
+
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* ── Admin pill ── */
+        .admin-pill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border-radius: 20px !important;
+            padding: 0.35rem 0.9rem !important;
+            font-weight: 600 !important;
+            font-size: 0.8rem !important;
+            letter-spacing: 0.02em;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: var(--transition);
+        }
+        .admin-pill i { color: white !important; }
+        .admin-pill:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a3d92 100%) !important;
+            color: white !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        /* ── Profile avatar circle ── */
+        .profile-avatar {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+            border: 2px solid rgba(255,255,255,0.8);
+            transition: var(--transition);
+        }
+        .profile-avatar:hover { transform: scale(1.08); }
+
+        .profile-initials {
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        /* Green online dot */
+        .profile-online-dot {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 9px;
+            height: 9px;
+            background: #22c55e;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px rgba(34,197,94,0.3);
+        }
+
+        /* ── Profile name/role beside avatar ── */
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .profile-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #2d3748;
+            white-space: nowrap;
+        }
+        .profile-role {
+            font-size: 0.7rem;
+            color: #718096;
+            font-weight: 400;
+        }
+
+        /* ── Trigger button ── */
+        .profile-trigger {
+            padding: 0.3rem 0.5rem !important;
+            border-radius: 12px !important;
+        }
+        .profile-trigger:hover { background: rgba(102,126,234,0.08) !important; }
+
+        /* Chevron rotates when dropdown is open */
+        .profile-chevron {
+            font-size: 0.65rem;
+            color: #a0aec0;
+            transition: transform 0.25s ease;
+        }
+        .profile-trigger[aria-expanded="true"] .profile-chevron { transform: rotate(180deg); }
+
+        /* ── Profile dropdown ── */
+        .profile-dropdown {
+            min-width: 240px;
+            background: rgba(255,255,255,0.97) !important;
+            backdrop-filter: blur(24px) !important;
+            border: 1px solid rgba(102,126,234,0.12) !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important;
+            border-radius: 16px !important;
+            padding: 0.25rem !important;
+        }
+
+        /* ── Dropdown header section ── */
+        .profile-dropdown-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px 10px;
+        }
+
+        .profile-avatar-lg {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(102,126,234,0.45);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        /* Role badge inside dropdown header */
+        .profile-role-badge {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            letter-spacing: 0.03em;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Modern Navigation -->
+    <nav class="navbar navbar-expand-lg shadow-modern sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="{% static 'images/fluidtrust_logo.png' %}" alt="FluidTrust Logo" style="height: 32px; margin-right: 10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                <span class="text-gradient-primary">IT Support Portal</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            {% if user.is_authenticated %}
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.userprofile.get_role != 'admin' and not user.is_superuser %}
+                    <li class="nav-item">
+                        <a class="nav-link pulse-on-hover" href="{% url 'rbac:company_dashboard' %}">
+                            <i class="fas fa-building"></i>Company Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% load rbac_tags %}
+                    {% if user.userprofile.get_role == 'customer' %}
+                    <li class="nav-item">
+                        <a class="nav-link pulse-on-hover" href="/tickets/reports/">
+                            <i class="fas fa-chart-bar"></i>Reports
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if user.userprofile.get_role != 'customer' %}
+                    <li class="nav-item">
+                        <a class="nav-link pulse-on-hover" href="/chatbot/">
+                            <i class="fas fa-robot"></i>AI Assistant
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link pulse-on-hover" href="{% url 'rbac:user_license_dashboard' %}">
+                            <i class="fas fa-key"></i>Licenses
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav align-items-center gap-1">
+                    {% if user.is_superuser %}
+                    <li class="nav-item">
+                        <a class="nav-link admin-pill pulse-on-hover" href="{% url 'rbac:admin_dashboard' %}">
+                            <i class="fas fa-shield-halved"></i>Admin
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle profile-trigger d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- Avatar with initials + online ring -->
+                            <div class="profile-avatar">
+                                <span class="profile-initials">{{ user.first_name|slice:":1"|upper }}{% if not user.first_name %}{{ user.username|slice:":1"|upper }}{% endif %}</span>
+                                <span class="profile-online-dot"></span>
+                            </div>
+                            <div class="profile-info d-none d-lg-block">
+                                <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="profile-role">{% if user.is_superuser %}Super Admin{% else %}{{ user.userprofile.get_role|title }}{% endif %}</div>
+                            </div>
+                            <i class="fas fa-chevron-down profile-chevron"></i>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end profile-dropdown" aria-labelledby="userDropdown">
+                            <!-- Header -->
+                            <li class="profile-dropdown-header">
+                                <div class="profile-avatar-lg">
+                                    <span>{{ user.first_name|slice:":1"|upper }}{% if not user.first_name %}{{ user.username|slice:":1"|upper }}{% endif %}</span>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="font-size:0.85rem;">{{ user.get_full_name|default:user.username }}</div>
+                                    <div style="font-size:0.75rem; opacity:0.7;">{{ user.email }}</div>
+                                    <span class="profile-role-badge">{% if user.is_superuser %}Super Admin{% else %}{{ user.userprofile.get_role|title }}{% endif %}</span>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+
+                            {% if user.is_superuser %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'rbac:admin_dashboard' %}">
+                                    <i class="fas fa-gauge-high me-2 text-primary"></i>Admin Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'rbac:manage_technician_access' %}">
+                                    <i class="fas fa-user-shield me-2 text-primary"></i>Technician Access
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/admin/">
+                                    <i class="fas fa-screwdriver-wrench me-2 text-secondary"></i>Django Admin
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% endif %}
+
+                            <li>
+                                <a class="dropdown-item" href="{% url 'rbac:user_license_dashboard' %}">
+                                    <i class="fas fa-key me-2 text-warning"></i>My Licenses
+                                </a>
+                            </li>
+                            {% if user.userprofile.get_role != 'admin' and not user.is_superuser %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'rbac:company_dashboard' %}">
+                                    <i class="fas fa-building me-2 text-info"></i>Company Dashboard
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider my-1"></li>
+
+                            <li>
+                                <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center">
+                                        <i class="fas fa-right-from-bracket me-2"></i>Sign Out
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content with Animation -->
+    <main class="py-4 fade-in-up" id="main-content">
+        {% if messages %}
+            <div class="container-fluid px-4">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-modern" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-3"></i>
+                            <div>{{ message }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Enhanced Bootstrap JS with custom animations -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add smooth scrolling and enhanced interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Add loading states to forms
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                        submitBtn.disabled = true;
+                    }
+                });
+            });
+
+            // Enhanced card hover effects
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(() => {
+                document.querySelectorAll('.alert').forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+        });
+
+        // Add ripple effect to buttons
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255, 255, 255, 0.5);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    pointer-events: none;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // Add CSS for ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

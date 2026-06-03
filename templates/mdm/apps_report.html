@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Apps Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Installed Applications Report</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>App Summary</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>App Name</th>
+                                            <th>Device Count</th>
+                                            <th>Versions</th>
+                                            <th>Managed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for app_name, summary in app_summary.items %}
+                                        <tr>
+                                            <td>{{ app_name }}</td>
+                                            <td>{{ summary.count }}</td>
+                                            <td>{{ summary.versions|join:", " }}</td>
+                                            <td>
+                                                {% if summary.is_managed %}
+                                                    <span class="badge badge-success">Yes</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning">No</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5>Detailed App List</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>App Name</th>
+                                    <th>Device</th>
+                                    <th>Customer</th>
+                                    <th>Version</th>
+                                    <th>Size</th>
+                                    <th>Type</th>
+                                    <th>Managed</th>
+                                    <th>Install Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in apps %}
+                                <tr>
+                                    <td>{{ app.app_name }}</td>
+                                    <td>
+                                        <a href="{% url 'mdm:device_detail' app.device.id %}">{{ app.device.device_name }}</a>
+                                    </td>
+                                    <td>{{ app.device.customer.name }}</td>
+                                    <td>{{ app.version }}</td>
+                                    <td>{{ app.size|filesizeformat }}</td>
+                                    <td>
+                                        {% if app.is_system_app %}
+                                            <span class="badge badge-secondary">System</span>
+                                        {% else %}
+                                            <span class="badge badge-primary">User</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if app.is_managed %}
+                                            <span class="badge badge-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ app.install_date|date:"M d, Y"|default:"Unknown" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No applications found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

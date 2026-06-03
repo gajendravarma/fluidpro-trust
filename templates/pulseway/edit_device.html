@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Device - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+          <i class="fas fa-desktop text-primary"></i>
+          <span class="fw-semibold">Edit Device: {{ device_name }}</span>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info small mb-4">
+            <i class="fas fa-info-circle me-1"></i>
+            Changes are sent to the Pulseway API and mirrored to the local database immediately.
+            The device agent registration itself cannot be changed here.
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Device Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Description / Notes</label>
+              {{ form.description }}
+              <div class="form-text">{{ form.description.help_text }}</div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Assign to Group</label>
+              {{ form.group_id }}
+              <div class="form-text">{{ form.group_id.help_text }}</div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{% url 'pulseway:device_detail' device_id %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-save me-1"></i>Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

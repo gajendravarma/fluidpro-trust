@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Software Report — Pulseway{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="mb-0"><i class="fas fa-box-open text-primary me-2"></i>Software / Apps Report</h4>
+      <small class="text-muted">Installed software fetched live from Pulseway API</small>
+    </div>
+    <a href="{% url 'pulseway:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Back
+    </a>
+  </div>
+
+  <!-- Mode selector -->
+  <div class="row g-3 mb-4">
+
+    <!-- Device-wise -->
+    <div class="col-md-6">
+      <div class="card h-100 border-primary">
+        <div class="card-header bg-primary text-white fw-semibold">
+          <i class="fas fa-laptop me-2"></i>Device-wise Report
+        </div>
+        <div class="card-body">
+          <form method="get" action="">
+            <input type="hidden" name="mode" value="device">
+            <div class="mb-3">
+              <label class="form-label">Select Device</label>
+              <select name="device_id" class="form-select" required>
+                <option value="">— choose a device —</option>
+                {% for dev in devices %}
+                  <option value="{{ dev.device_id }}"
+                    {% if dev.device_id == device_id %}selected{% endif %}>
+                    {{ dev.device_name }}
+                    {% if dev.organization_name %}({{ dev.organization_name }}){% endif %}
+                    — {{ dev.status }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search me-1"></i> Fetch Software
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Organisation-wise -->
+    <div class="col-md-6">
+      <div class="card h-100 border-success">
+        <div class="card-header bg-success text-white fw-semibold">
+          <i class="fas fa-building me-2"></i>Organisation-wise Report
+        </div>
+        <div class="card-body">
+          <form method="get" action="">
+            <input type="hidden" name="mode" value="org">
+            <div class="mb-3">
+              <label class="form-label">Organisation (leave blank = all)</label>
+              <select name="org" class="form-select">
+                <option value="">— all organisations —</option>
+                {% for o in orgs %}
+                  <option value="{{ o }}" {% if o == org %}selected{% endif %}>{{ o }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <p class="text-muted small mb-2">Fetches up to 50 devices. Takes a few seconds.</p>
+            <button type="submit" class="btn btn-success w-100">
+              <i class="fas fa-chart-bar me-1"></i> Generate Report
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
+  {% endif %}
+
+  <!-- ── Device-wise results ── -->
+  {% if mode == 'device' and device_software is not None %}
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>
+        <i class="fas fa-laptop me-2 text-primary"></i>
+        <strong>{{ selected_device.device_name|default:device_id }}</strong>
+        {% if selected_device %}<span class="text-muted ms-2">{{ selected_device.organization_name }}</span>{% endif %}
+      </span>
+      <span class="badge bg-primary rounded-pill">{{ device_software|length }} apps</span>
+    </div>
+    {% if device_software %}
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0" id="deviceSoftwareTable">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Application Name</th>
+              <th>Version</th>
+              <th>Publisher</th>
+              <th>Install Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in device_software %}
+            <tr>
+              <td class="text-muted small">{{ forloop.counter }}</td>
+              <td><strong>{{ app.Name|default:"—" }}</strong></td>
+              <td><code class="small">{{ app.Version|default:"—" }}</code></td>
+              <td class="text-muted">{{ app.Publisher|default:"—" }}</td>
+              <td class="text-muted small">{{ app.InstallDate|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="card-body text-muted">No software data returned from API for this device.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ── Organisation-wise results ── -->
+  {% if mode == 'org' and report %}
+  {% with report as r %}
+
+  <!-- Summary cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-primary">{{ r.total_devices }}</div>
+          <div class="text-muted small">Devices scanned</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-success">{{ r.software|length }}</div>
+          <div class="text-muted small">Unique apps found</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-info">
+            {% if r.software %}{{ r.software.0.name|truncatechars:20 }}{% else %}—{% endif %}
+          </div>
+          <div class="text-muted small">Most installed app</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold {% if r.api_errors %}text-warning{% else %}text-success{% endif %}">
+            {{ r.api_errors }}
+          </div>
+          <div class="text-muted small">API errors</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Software aggregation table -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header fw-semibold">
+          <i class="fas fa-list me-2 text-success"></i>
+          Software — ranked by install count
+          {% if org %}<span class="badge bg-secondary ms-2">{{ org }}</span>{% endif %}
+        </div>
+        <div class="card-body p-0">
+          <div style="max-height:500px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0" id="orgSoftwareTable">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>#</th>
+                  <th>Application</th>
+                  <th>Publisher</th>
+                  <th>Version</th>
+                  <th class="text-center">Devices</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for app in r.software %}
+                <tr data-devices="{{ app.devices|join:'|' }}">
+                  <td class="text-muted small">{{ forloop.counter }}</td>
+                  <td>
+                    <strong>{{ app.name }}</strong>
+                    <button class="btn btn-link btn-sm p-0 ms-1 text-muted toggle-devices"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#dev-{{ forloop.counter }}"
+                            title="Show devices">
+                      <i class="fas fa-chevron-down" style="font-size:.7rem"></i>
+                    </button>
+                    <div class="collapse small text-muted" id="dev-{{ forloop.counter }}">
+                      {{ app.devices|join:", " }}
+                    </div>
+                  </td>
+                  <td class="text-muted small">{{ app.publisher|default:"—" }}</td>
+                  <td><code class="small">{{ app.version|default:"—" }}</code></td>
+                  <td class="text-center">
+                    <span class="badge bg-primary rounded-pill">{{ app.device_count }}</span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted text-center py-3">No software data returned.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-device summary -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header fw-semibold">
+          <i class="fas fa-laptop me-2 text-primary"></i>Per-device summary
+        </div>
+        <div class="card-body p-0">
+          <div style="max-height:500px;overflow-y:auto;">
+            <table class="table table-sm mb-0">
+              <thead class="table-light sticky-top">
+                <tr><th>Device</th><th>Org</th><th class="text-center">Apps</th></tr>
+              </thead>
+              <tbody>
+                {% for d in r.devices %}
+                <tr>
+                  <td class="small fw-semibold">{{ d.device_name }}</td>
+                  <td class="small text-muted">{{ d.org }}</td>
+                  <td class="text-center">
+                    <span class="badge bg-secondary">{{ d.software_count }}</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+</div>
+
+<!-- Simple search filter for tables -->
+<script>
+document.querySelectorAll('[id$="Table"]').forEach(table => {
+  const header = table.closest('.card').querySelector('.card-header');
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.className = 'form-control form-control-sm mt-2';
+  input.placeholder = 'Filter…';
+  header.appendChild(input);
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase();
+    table.querySelectorAll('tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>
+{% endblock %}

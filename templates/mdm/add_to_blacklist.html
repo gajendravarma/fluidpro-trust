@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add to Blacklist - MDM Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-secondary { background: #6c757d; margin-left: 10px; }
+        .required { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Add App to Blacklist</h1>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>Customer</label>
+                <select name="customer_id" required>
+                    {% for customer in customers %}
+                        <option value="{{ customer.customer_id }}" 
+                                {% if customer.customer_id == selected_customer_id %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>App Name <span class="required">*</span></label>
+                <input type="text" name="appname" required placeholder="e.g., WhatsApp">
+            </div>
+            
+            <div class="form-group">
+                <label>App Identifier <span class="required">*</span></label>
+                <input type="text" name="identifier" required placeholder="e.g., com.whatsapp">
+            </div>
+            
+            <div class="form-group">
+                <label>Platform <span class="required">*</span></label>
+                <select name="platform" required>
+                    <option value="1">iOS</option>
+                    <option value="2">Android</option>
+                    <option value="3">Windows</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn">Add to Blacklist</button>
+            <a href="{% url 'mdm:app_policies' %}?customer_id={{ selected_customer_id }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>

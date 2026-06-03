@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Virtual Ticket Reports</h3>
+                </div>
+                <div class="card-body">
+                    <form id="reportForm" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <select class="form-control" id="reportType" name="report_type">
+                                    <option value="daily">Daily Report</option>
+                                    <option value="weekly">Weekly Report</option>
+                                    <option value="monthly">Monthly Report</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary">Generate Virtual Charts</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="loadingSpinner" class="text-center" style="display: none;">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div id="reportResults" style="display: none;">
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <strong>Report Generated:</strong> <span id="reportTime"></span> | 
+                                    <strong>Total Tickets:</strong> <span id="totalTickets"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">Status Distribution</div>
+                                    <div class="card-body">
+                                        <div id="statusChart" style="height: 300px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">Priority Breakdown</div>
+                                    <div class="card-body">
+                                        <div id="priorityChart" style="height: 300px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">Daily Trends</div>
+                                    <div class="card-body">
+                                        <div id="trendChart" style="height: 300px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
+<script>
+let charts = {};
+
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    generateVirtualReport();
+});
+
+function generateVirtualReport() {
+    const spinner = document.getElementById('loadingSpinner');
+    const results = document.getElementById('reportResults');
+    
+    spinner.style.display = 'block';
+    results.style.display = 'none';
+    
+    const reportType = document.getElementById('reportType').value;
+    
+    fetch(`/tickets/reports/generate/?report_type=${reportType}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        results.style.display = 'block';
+        
+        document.getElementById('reportTime').textContent = data.generated_at;
+        document.getElementById('totalTickets').textContent = data.total_tickets;
+        
+        renderCharts(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        spinner.style.display = 'none';
+        alert('Error generating report');
+    });
+}
+
+function renderCharts(data) {
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart.destroy());
+    charts = {};
+    
+    // Status Chart (Donut)
+    const statusData = Object.entries(data.status_breakdown).map(([key, value]) => ({
+        x: key,
+        y: value
+    }));
+    
+    charts.status = new ApexCharts(document.querySelector("#statusChart"), {
+        chart: { type: 'donut', height: 300 },
+        series: statusData.map(item => item.y),
+        labels: statusData.map(item => item.x),
+        colors: ['#28a745', '#ffc107', '#dc3545', '#17a2b8'],
+        legend: { position: 'bottom' },
+        responsive: [{
+            breakpoint: 480,
+            options: { legend: { position: 'bottom' } }
+        }]
+    });
+    charts.status.render();
+    
+    // Priority Chart (Bar)
+    const priorityData = Object.entries(data.priority_breakdown);
+    
+    charts.priority = new ApexCharts(document.querySelector("#priorityChart"), {
+        chart: { type: 'bar', height: 300 },
+        series: [{
+            name: 'Tickets',
+            data: priorityData.map(([key, value]) => ({ x: key, y: value }))
+        }],
+        colors: ['#dc3545', '#fd7e14', '#ffc107', '#6c757d'],
+        xaxis: { categories: priorityData.map(([key]) => key) },
+        plotOptions: {
+            bar: { horizontal: false, columnWidth: '55%' }
+        }
+    });
+    charts.priority.render();
+    
+    // Trend Chart (Line)
+    const trendData = Object.entries(data.daily_breakdown).sort();
+    
+    charts.trend = new ApexCharts(document.querySelector("#trendChart"), {
+        chart: { type: 'line', height: 300 },
+        series: [{
+            name: 'Daily Tickets',
+            data: trendData.map(([date, count]) => ({ x: date, y: count }))
+        }],
+        colors: ['#007bff'],
+        xaxis: { type: 'datetime' },
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 5 }
+    });
+    charts.trend.render();
+}
+
+// Auto-generate on page load
+document.addEventListener('DOMContentLoaded', function() {
+    generateVirtualReport();
+});
+</script>
+{% endblock %}

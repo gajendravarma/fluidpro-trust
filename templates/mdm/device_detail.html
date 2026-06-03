@@ -1,0 +1,537 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ device.device_name }} — Device Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-pill { min-width: 90px; }
+.action-btn { min-width: 130px; }
+.history-badge { font-size: 0.72rem; }
+.tab-content { min-height: 220px; }
+.info-label { font-size: 0.78rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+.info-value { font-size: 0.95rem; font-weight: 500; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'mdm:dashboard' %}">MDM</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mdm:device_list' %}">Devices</a></li>
+      <li class="breadcrumb-item active">{{ device.device_name }}</li>
+    </ol>
+  </nav>
+
+  <!-- Title row -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+        {% if device.device_type == 'android' %}
+          <i class="fab fa-android text-success fs-3"></i>
+        {% elif device.device_type == 'ios' %}
+          <i class="fab fa-apple text-dark fs-3"></i>
+        {% elif device.device_type == 'windows' %}
+          <i class="fab fa-windows text-primary fs-3"></i>
+        {% else %}
+          <i class="fas fa-laptop text-secondary fs-3"></i>
+        {% endif %}
+      </div>
+      <div>
+        <h3 class="mb-0 fw-bold">{{ device.device_name }}</h3>
+        <span class="text-muted small">{{ device.device_id }}</span>
+        &nbsp;
+        <span class="badge rounded-pill
+          {% if device.status == 'active' %}bg-success
+          {% elif device.status == 'retired' %}bg-danger
+          {% elif device.status == 'enrollment_pending' %}bg-info
+          {% elif device.status == 'staged' %}bg-warning text-dark
+          {% else %}bg-secondary{% endif %}">
+          {{ device.status_display }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="d-flex gap-2 flex-wrap">
+      <div class="card border-0 bg-light stat-pill text-center px-3 py-2">
+        <div class="fw-bold text-primary">{{ installed_apps.count }}</div>
+        <small class="text-muted">Apps</small>
+      </div>
+      <div class="card border-0 bg-light stat-pill text-center px-3 py-2">
+        <div class="fw-bold text-success">{{ device.profile_count|default:0 }}</div>
+        <small class="text-muted">Profiles</small>
+      </div>
+      <div class="card border-0 bg-light stat-pill text-center px-3 py-2">
+        <div class="fw-bold {% if device.battery_level and device.battery_level < 20 %}text-danger{% else %}text-warning{% endif %}">
+          {{ device.battery_level|default:"--" }}%
+        </div>
+        <small class="text-muted">Battery</small>
+      </div>
+      <div class="card border-0 bg-light stat-pill text-center px-3 py-2">
+        <div class="fw-bold text-info">{{ security_events.count }}</div>
+        <small class="text-muted">Events</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- LEFT COLUMN -->
+    <div class="col-lg-8">
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-3" id="deviceTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info">Info</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-apps">Apps ({{ installed_apps.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Security Events ({{ security_events.count }})</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-location">Location</button></li>
+        {% if user_role in 'admin,technician' %}
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history" id="historyTab">History</button></li>
+        {% endif %}
+      </ul>
+
+      <div class="tab-content" id="deviceTabsContent">
+
+        <!-- INFO TAB -->
+        <div class="tab-pane fade show active" id="tab-info">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <h6 class="fw-semibold mb-3 border-bottom pb-2">Device</h6>
+                  <div class="row g-2">
+                    {% for label, val in info_device %}
+                    <div class="col-6">
+                      <div class="info-label">{{ label }}</div>
+                      <div class="info-value">{{ val|default:"—" }}</div>
+                    </div>
+                    {% endfor %}
+                    <!-- inline fallback if context var not set -->
+                    {% if not info_device %}
+                    <div class="col-6"><div class="info-label">Type</div><div class="info-value">{{ device.get_device_type_display }}</div></div>
+                    <div class="col-6"><div class="info-label">Model</div><div class="info-value">{{ device.model|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Manufacturer</div><div class="info-value">{{ device.manufacturer|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">OS Version</div><div class="info-value">{{ device.os_version|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Serial No.</div><div class="info-value">{{ device.serial_number|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">IMEI</div><div class="info-value">{{ device.imei|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Phone</div><div class="info-value">{{ device.phone_number|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Enrollment</div><div class="info-value">{{ device.enrollment_type|default:"—" }}</div></div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <h6 class="fw-semibold mb-3 border-bottom pb-2">User & Company</h6>
+                  <div class="row g-2">
+                    <div class="col-6"><div class="info-label">Company</div><div class="info-value">{{ device.customer_name }}</div></div>
+                    <div class="col-6"><div class="info-label">Username</div><div class="info-value">{{ device.username|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Email</div><div class="info-value">{{ device.user_email|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Display Name</div><div class="info-value">{{ device.display_name|default:"—" }}</div></div>
+                    <div class="col-6"><div class="info-label">Supervised</div>
+                      <div class="info-value">
+                        {% if device.is_supervised %}<span class="text-success"><i class="fas fa-check-circle"></i> Yes</span>
+                        {% else %}<span class="text-muted">No</span>{% endif %}
+                      </div>
+                    </div>
+                    <div class="col-6"><div class="info-label">Encrypted</div>
+                      <div class="info-value">
+                        {% if device.is_encrypted %}<span class="text-success"><i class="fas fa-lock"></i> Yes</span>
+                        {% else %}<span class="text-danger"><i class="fas fa-lock-open"></i> No</span>{% endif %}
+                      </div>
+                    </div>
+                    <div class="col-6"><div class="info-label">Enrolled</div><div class="info-value">{{ device.enrolled_at|date:"d M Y" }}</div></div>
+                    <div class="col-6"><div class="info-label">Last Seen</div><div class="info-value">{{ device.last_seen|date:"d M Y H:i"|default:"—" }}</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Storage -->
+              {% if device.storage_gb %}
+              <hr>
+              <h6 class="fw-semibold mb-2">Storage Capacity</h6>
+              <div class="d-flex align-items-center gap-3">
+                <i class="fas fa-hdd text-info"></i>
+                <span class="fw-bold text-info">{{ device.storage_gb }} GB</span>
+                <small class="text-muted">total device capacity</small>
+              </div>
+              {% endif %}
+
+              <!-- Battery -->
+              {% if device.battery_level is not None %}
+              <div class="mt-3">
+                <h6 class="fw-semibold mb-2">Battery</h6>
+                <div class="d-flex align-items-center gap-3">
+                  <div class="flex-grow-1">
+                    <div class="progress" style="height:10px">
+                      <div class="progress-bar {% if device.battery_level < 20 %}bg-danger{% elif device.battery_level < 50 %}bg-warning{% else %}bg-success{% endif %}"
+                           style="width:{{ device.battery_level }}%"></div>
+                    </div>
+                  </div>
+                  <small class="text-muted">{{ device.battery_level }}%</small>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- APPS TAB -->
+        <div class="tab-pane fade" id="tab-apps">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>App Name</th>
+                      <th>Package</th>
+                      <th>Version</th>
+                      <th>Size</th>
+                      <th>Type</th>
+                      <th>Managed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for app in installed_apps %}
+                    <tr>
+                      <td class="fw-semibold">{{ app.app_name }}</td>
+                      <td><small class="text-muted">{{ app.package_name }}</small></td>
+                      <td>{{ app.version|default:"—" }}</td>
+                      <td>{{ app.size|filesizeformat|default:"—" }}</td>
+                      <td>
+                        {% if app.is_system_app %}
+                          <span class="badge bg-secondary">System</span>
+                        {% else %}
+                          <span class="badge bg-primary">User</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if app.is_managed %}
+                          <span class="badge bg-success">Yes</span>
+                        {% else %}
+                          <span class="badge bg-warning text-dark">No</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">No applications found</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECURITY EVENTS TAB -->
+        <div class="tab-pane fade" id="tab-events">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Event</th>
+                      <th>Severity</th>
+                      <th>Description</th>
+                      <th>Date</th>
+                      <th>Resolved</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for event in security_events %}
+                    <tr>
+                      <td class="fw-semibold">{{ event.get_event_type_display }}</td>
+                      <td>
+                        <span class="badge
+                          {% if event.severity == 'critical' %}bg-danger
+                          {% elif event.severity == 'high' %}bg-warning text-dark
+                          {% elif event.severity == 'medium' %}bg-info text-dark
+                          {% else %}bg-secondary{% endif %}">
+                          {{ event.severity|title }}
+                        </span>
+                      </td>
+                      <td><small>{{ event.description|truncatechars:80 }}</small></td>
+                      <td><small>{{ event.created_at|date:"d M Y H:i" }}</small></td>
+                      <td>
+                        {% if event.resolved %}
+                          <span class="badge bg-success">Resolved</span>
+                        {% else %}
+                          <span class="badge bg-danger">Open</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No security events</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOCATION TAB -->
+        <div class="tab-pane fade" id="tab-location">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              {% if device.location_lat and device.location_lng %}
+              <div class="d-flex gap-4 mb-3 flex-wrap">
+                <div>
+                  <div class="info-label">Latitude</div>
+                  <div class="info-value">{{ device.location_lat }}</div>
+                </div>
+                <div>
+                  <div class="info-label">Longitude</div>
+                  <div class="info-value">{{ device.location_lng }}</div>
+                </div>
+                <div>
+                  <div class="info-label">Last Updated</div>
+                  <div class="info-value">{{ device.location_updated|date:"d M Y H:i"|default:"—" }}</div>
+                </div>
+              </div>
+              <div id="locationMap" style="height:320px;border-radius:8px;background:#e9ecef;" class="d-flex align-items-center justify-content-center">
+                <a href="https://maps.google.com/?q={{ device.location_lat }},{{ device.location_lng }}"
+                   target="_blank" class="btn btn-primary">
+                  <i class="fas fa-map-marker-alt me-2"></i>Open in Google Maps
+                </a>
+              </div>
+              {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-map-marker-slash fa-2x text-muted mb-3"></i>
+                <p class="text-muted mb-2">No location data available.</p>
+                {% if user_role in 'admin,technician' %}
+                <button class="btn btn-outline-primary btn-sm" onclick="sendAction('locate')">
+                  <i class="fas fa-crosshairs me-1"></i>Request Location Update
+                </button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- COMMAND HISTORY TAB (admin/technician only) -->
+        {% if user_role in 'admin,technician' %}
+        <div class="tab-pane fade" id="tab-history">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div id="historyLoading" class="text-center py-4 d-none">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading history…
+              </div>
+              <div id="historyEmpty" class="text-center py-4 text-muted d-none">
+                <i class="fas fa-history fa-2x mb-2"></i>
+                <p>No command history available.</p>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle" id="historyTable">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Command</th>
+                      <th>Status</th>
+                      <th>Initiated</th>
+                      <th>Completed</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyBody">
+                    <tr><td colspan="4" class="text-center text-muted py-3">Click the History tab to load…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div><!-- /tab-content -->
+    </div><!-- /col-lg-8 -->
+
+    <!-- RIGHT COLUMN — Actions -->
+    <div class="col-lg-4">
+
+      {% if user_role in 'admin,technician' %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold border-bottom">
+          <i class="fas fa-bolt text-warning me-2"></i>Device Actions
+        </div>
+        <div class="card-body d-flex flex-column gap-2">
+          <button class="btn btn-outline-secondary action-btn w-100 text-start"
+                  onclick="sendAction('locate')">
+            <i class="fas fa-crosshairs me-2 text-info"></i>Locate Device
+          </button>
+          <button class="btn btn-outline-secondary action-btn w-100 text-start"
+                  onclick="sendAction('ring')">
+            <i class="fas fa-bell me-2 text-primary"></i>Ring / Alert
+          </button>
+          <button class="btn btn-outline-warning action-btn w-100 text-start"
+                  onclick="sendAction('lock')">
+            <i class="fas fa-lock me-2"></i>Lock Device
+          </button>
+          <button class="btn btn-outline-secondary action-btn w-100 text-start"
+                  onclick="sendAction('clear_passcode')">
+            <i class="fas fa-key me-2 text-secondary"></i>Clear Passcode
+          </button>
+          <button class="btn btn-outline-info action-btn w-100 text-start"
+                  onclick="sendAction('restart')">
+            <i class="fas fa-redo me-2"></i>Restart Device
+          </button>
+          <hr class="my-1">
+          <button class="btn btn-outline-danger action-btn w-100 text-start"
+                  onclick="confirmWipe()">
+            <i class="fas fa-trash-alt me-2"></i>Wipe Device
+          </button>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold border-bottom">
+          <i class="fas fa-sync-alt text-primary me-2"></i>Sync
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Pull the latest device state from ManageEngine MDM API.</p>
+          <button class="btn btn-primary w-100" onclick="syncDevice()">
+            <i class="fas fa-cloud-download-alt me-2"></i>Sync from API
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Last contact -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold border-bottom">
+          <i class="fas fa-clock text-muted me-2"></i>Timestamps
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <div class="info-label">Last Contact</div>
+            <div class="info-value">{{ device.last_contact_time|date:"d M Y H:i"|default:"—" }}</div>
+          </div>
+          <div class="mb-2">
+            <div class="info-label">Last Seen</div>
+            <div class="info-value">{{ device.last_seen|date:"d M Y H:i"|default:"—" }}</div>
+          </div>
+          <div class="mb-2">
+            <div class="info-label">Enrolled</div>
+            <div class="info-value">{{ device.enrolled_at|date:"d M Y H:i" }}</div>
+          </div>
+          {% if device.enrollment_time %}
+          <div>
+            <div class="info-label">Enrollment Time</div>
+            <div class="info-value">{{ device.enrollment_time|date:"d M Y H:i" }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+</div>
+
+<!-- Action result toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="actionToast" class="toast align-items-center border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMessage">Action sent.</div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DEVICE_DB_ID = {{ device.id }};
+const CSRF = '{{ csrf_token }}';
+
+function showToast(msg, success) {
+  const t = document.getElementById('actionToast');
+  t.className = 'toast align-items-center border-0 text-white ' + (success ? 'bg-success' : 'bg-danger');
+  document.getElementById('toastMessage').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(t, {delay: 4000}).show();
+}
+
+function sendAction(action, extra) {
+  const body = new FormData();
+  body.append('action', action);
+  body.append('csrfmiddlewaretoken', CSRF);
+  if (extra) Object.entries(extra).forEach(([k,v]) => body.append(k, v));
+
+  fetch(`/mdm/devices/${DEVICE_DB_ID}/action/`, {method: 'POST', body})
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === 'success') {
+        showToast(`✓ ${d.action_label} command sent to ${d.device_name}.`, true);
+      } else {
+        showToast(`✗ ${d.message}`, false);
+      }
+    })
+    .catch(() => showToast('Network error — could not reach server.', false));
+}
+
+function confirmWipe() {
+  if (confirm('⚠️ WARNING: This will permanently wipe ALL data on this device.\n\nAre you absolutely sure?')) {
+    sendAction('wipe');
+  }
+}
+
+function syncDevice() {
+  fetch(`/mdm/devices/${DEVICE_DB_ID}/sync/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF},
+  })
+  .then(r => r.json())
+  .then(d => {
+    showToast(d.status === 'success' ? `✓ ${d.message}` : `✗ ${d.message}`, d.status === 'success');
+    if (d.status === 'success') setTimeout(() => location.reload(), 2000);
+  })
+  .catch(() => showToast('Network error.', false));
+}
+
+// Load command history when that tab is clicked (lazy)
+let historyLoaded = false;
+document.getElementById('historyTab')?.addEventListener('shown.bs.tab', function() {
+  if (historyLoaded) return;
+  historyLoaded = true;
+
+  const loading = document.getElementById('historyLoading');
+  const empty   = document.getElementById('historyEmpty');
+  const tbody   = document.getElementById('historyBody');
+
+  loading.classList.remove('d-none');
+  tbody.innerHTML = '';
+
+  fetch(`/mdm/devices/${DEVICE_DB_ID}/history/`)
+    .then(r => r.json())
+    .then(d => {
+      loading.classList.add('d-none');
+      if (!d.history || d.history.length === 0) {
+        empty.classList.remove('d-none');
+        return;
+      }
+      tbody.innerHTML = d.history.map(h => `
+        <tr>
+          <td class="fw-semibold">${h.commandName || h.command || '—'}</td>
+          <td><span class="badge history-badge ${statusClass(h.status)}">${h.status || '—'}</span></td>
+          <td><small>${h.initiatedTime || h.initiated_at || '—'}</small></td>
+          <td><small>${h.completedTime || h.completed_at || '—'}</small></td>
+        </tr>
+      `).join('');
+    })
+    .catch(() => {
+      loading.classList.add('d-none');
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Failed to load history.</td></tr>';
+    });
+});
+
+function statusClass(s) {
+  s = (s || '').toLowerCase();
+  if (s === 'success' || s === 'completed') return 'bg-success';
+  if (s === 'failed' || s === 'error') return 'bg-danger';
+  if (s === 'pending') return 'bg-warning text-dark';
+  return 'bg-secondary';
+}
+</script>
+{% endblock %}

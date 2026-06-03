@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Policy - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Create Monitoring Policy</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Policy Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Description</label>
+              {{ form.description }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Scope <span class="text-danger">*</span></label>
+                {{ form.scope }}
+                <div class="form-text">Apply policy at this level.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Scope ID</label>
+                {{ form.scope_id }}
+                <div class="form-text">{{ form.scope_id.help_text }}</div>
+              </div>
+            </div>
+
+            <hr>
+            <h6 class="fw-semibold text-muted mb-3"><i class="fas fa-tachometer-alt me-1"></i>Alert Thresholds (optional)</h6>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                <label class="form-label">CPU Threshold (%)</label>
+                {{ form.cpu_threshold }}
+                <div class="form-text">{{ form.cpu_threshold.help_text }}</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Memory Threshold (%)</label>
+                {{ form.memory_threshold }}
+                <div class="form-text">{{ form.memory_threshold.help_text }}</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Disk Threshold (%)</label>
+                {{ form.disk_threshold }}
+                <div class="form-text">{{ form.disk_threshold.help_text }}</div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{% url 'pulseway:policies' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-save me-1"></i>Create Policy
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

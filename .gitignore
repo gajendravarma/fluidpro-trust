@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Django
+*.log
+*.pot
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Claude memory
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Test / one-off scripts
+_test_chatbot.py
+
+# Compiled assets
+*.min.js.map

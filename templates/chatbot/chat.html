@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}FluidTrust AI Assistant{% endblock %}
+
+{% block content %}
+<style>
+/* ── Layout ── */
+.chat-wrap        { display:flex; flex-direction:column; height:calc(100vh - 120px); max-height:880px; background:#fff; border-radius:14px; box-shadow:0 4px 24px rgba(0,0,0,.1); overflow:hidden; }
+.chat-header      { background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.chat-header h5   { margin:0; font-weight:700; font-size:1rem; letter-spacing:.01em; }
+.chat-header small{ opacity:.8; font-size:0.72rem; }
+.chat-body        { flex:1; overflow-y:auto; padding:16px; background:#f7f8fc; display:flex; flex-direction:column; gap:12px; }
+.chat-footer      { background:#fff; border-top:1px solid #e9ecef; padding:12px 16px; flex-shrink:0; }
+
+/* ── Messages ── */
+.msg-row          { display:flex; gap:8px; align-items:flex-end; }
+.msg-row.user     { flex-direction:row-reverse; }
+.avatar           { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:700; }
+.avatar.bot       { background:linear-gradient(135deg,#0f3460,#533483); color:#fff; }
+.avatar.user      { background:#dee2e6; color:#495057; }
+.bubble           { max-width:76%; padding:10px 14px; border-radius:16px; font-size:0.875rem; line-height:1.6; word-break:break-word; }
+.bubble.bot       { background:#fff; border:1px solid #e9ecef; border-bottom-left-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.bubble.user      { background:linear-gradient(135deg,#0f3460,#533483); color:#fff; border-bottom-right-radius:4px; }
+.msg-time         { font-size:0.65rem; color:#adb5bd; margin-top:3px; }
+
+/* ── Bot bubble markdown ── */
+.bubble.bot table { width:100%; border-collapse:collapse; font-size:0.82rem; margin:.5rem 0; }
+.bubble.bot th    { background:#f0f4ff; color:#0f3460; padding:5px 8px; text-align:left; border:1px solid #dee2e6; }
+.bubble.bot td    { padding:4px 8px; border:1px solid #dee2e6; }
+.bubble.bot strong{ color:#0f3460; }
+.bubble.bot ul,
+.bubble.bot ol    { margin:.3rem 0 .3rem 1rem; padding:0; }
+.bubble.bot li    { margin-bottom:3px; }
+.bubble.bot p     { margin:0 0 .5rem; }
+.bubble.bot p:last-child { margin:0; }
+.bubble.bot code  { background:#f0f4ff; padding:1px 5px; border-radius:3px; font-size:.82em; }
+
+/* ── Source badge ── */
+.badge-source          { font-size:0.6rem; padding:2px 7px; border-radius:10px; font-weight:700; margin-left:6px; vertical-align:middle; letter-spacing:.03em; }
+.badge-source.ollama   { background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; }
+.badge-source.fallback { background:#fff3cd; color:#856404; border:1px solid #ffe69c; }
+.badge-source.error    { background:#fdecea; color:#c62828; border:1px solid #f5c6cb; }
+
+/* ── AI status pill in header ── */
+.ai-pill { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; padding:3px 10px; border-radius:12px; font-weight:600; }
+.ai-pill.ready  { background:rgba(46,213,115,.18); color:#27ae60; border:1px solid rgba(46,213,115,.4); }
+.ai-pill.loading{ background:rgba(255,193,7,.18);  color:#f39c12; border:1px solid rgba(255,193,7,.4); }
+.ai-pill.off    { background:rgba(255,255,255,.12); color:rgba(255,255,255,.7); border:1px solid rgba(255,255,255,.25); }
+
+/* ── Typing indicator ── */
+.typing-row       { display:flex; gap:8px; align-items:flex-end; }
+.typing-dots      { display:flex; gap:4px; padding:12px 16px; background:#fff; border:1px solid #e9ecef; border-radius:16px; border-bottom-left-radius:4px; }
+.typing-dots span { width:7px; height:7px; border-radius:50%; background:#533483; opacity:.4; animation:tdot 1.2s infinite ease-in-out; }
+.typing-dots span:nth-child(2){ animation-delay:.2s; }
+.typing-dots span:nth-child(3){ animation-delay:.4s; }
+@keyframes tdot   { 0%,80%,100%{transform:translateY(0);opacity:.4;} 40%{transform:translateY(-6px);opacity:1;} }
+
+/* ── Quick chips ── */
+.chips-wrap { display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 4px; }
+.chip       { font-size:0.74rem; padding:4px 11px; border:1.5px solid #c5cff5; border-radius:20px; background:#f0f4ff; color:#0f3460; cursor:pointer; white-space:nowrap; transition:all .15s; }
+.chip:hover { background:#0f3460; color:#fff; border-color:#0f3460; }
+
+/* ── Input ── */
+.input-row  { display:flex; gap:8px; }
+#chat-input { flex:1; border:1.5px solid #dee2e6; border-radius:10px; padding:9px 14px; font-size:0.88rem; outline:none; transition:border-color .15s; }
+#chat-input:focus { border-color:#0f3460; }
+#send-btn   { padding:9px 18px; background:linear-gradient(135deg,#0f3460,#533483); color:#fff; border:none; border-radius:10px; font-weight:600; font-size:0.88rem; cursor:pointer; white-space:nowrap; transition:opacity .15s; }
+#send-btn:hover    { opacity:.88; }
+#send-btn:disabled { opacity:.45; cursor:not-allowed; }
+
+/* ── Status bar ── */
+.status-bar { font-size:0.7rem; color:#6c757d; margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.dot-live   { width:7px; height:7px; border-radius:50%; background:#20c997; display:inline-block; margin-right:3px; animation:dpulse 2s infinite; }
+.dot-live.off { background:#adb5bd; animation:none; }
+@keyframes dpulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+/* ── Setup card ── */
+.setup-card { background:#fff; border:1.5px solid #e9ecef; border-radius:12px; padding:14px 16px; max-width:480px; font-size:0.82rem; }
+.setup-card h6 { font-weight:700; margin:0 0 8px; color:#0f3460; }
+.setup-card code { display:block; background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:5px 10px; margin:4px 0; font-size:.78rem; color:#533483; }
+.setup-card .done-btn { margin-top:10px; padding:5px 14px; background:#0f3460; color:#fff; border:none; border-radius:8px; font-size:.78rem; cursor:pointer; }
+</style>
+
+<div class="container-fluid px-3 py-2">
+<div class="chat-wrap">
+
+  <!-- ── Header ── -->
+  <div class="chat-header">
+    <div>
+      <h5><i class="fas fa-robot me-2"></i>FluidTrust AI Assistant
+        <span style="font-size:.65rem;opacity:.6;font-weight:400;margin-left:6px;">Open Source · Local AI</span>
+      </h5>
+      <small>
+        <span class="dot-live {% if not engine_available %}off{% endif %}"></span>
+        {% if engine_available %}
+          Ollama · {{ engine_model }} · Live database · Conversation memory
+        {% else %}
+          Setting up local AI — see instructions below
+        {% endif %}
+      </small>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="ai-pill" class="ai-pill {% if engine_available %}ready{% else %}off{% endif %}">
+        {% if engine_available %}
+          <i class="fas fa-circle" style="font-size:.5rem;"></i> AI Ready
+        {% else %}
+          <i class="fas fa-circle-notch fa-spin" style="font-size:.5rem;"></i> Starting…
+        {% endif %}
+      </span>
+      <button onclick="newSession()" title="Start new conversation"
+              style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">
+        <i class="fas fa-plus me-1"></i>New Chat
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Chat body ── -->
+  <div id="chat-body" class="chat-body">
+
+    <!-- Setup instructions (shown when engine offline) -->
+    {% if not engine_available %}
+    <div class="msg-row" id="setup-msg">
+      <div class="avatar bot"><i class="fas fa-robot"></i></div>
+      <div>
+        <div class="bubble bot">
+          <strong>⚙️ One-time setup needed for Open Source AI</strong>
+          <div class="setup-card mt-2">
+            <h6><i class="fas fa-download me-1"></i>Step 1 — Install Ollama</h6>
+            Download &amp; install from <strong>ollama.com/download</strong> (Windows)
+            <h6 class="mt-2"><i class="fas fa-terminal me-1"></i>Step 2 — Pull the AI model</h6>
+            Open Command Prompt and run:
+            <code>ollama pull llama3.2:3b</code>
+            <small class="text-muted d-block mt-1">Downloads ~2GB. One-time only. Runs 100% offline after this.</small>
+            <h6 class="mt-2"><i class="fas fa-play me-1"></i>Step 3 — Install Python package</h6>
+            <code>pip install ollama</code>
+            <h6 class="mt-2"><i class="fas fa-check-circle me-1 text-success"></i>Step 4 — Reload this page</h6>
+            Ollama auto-starts in the background after install.
+            <br>
+            <button class="done-btn" onclick="checkStatus()">
+              <i class="fas fa-sync-alt me-1"></i>Check if AI is ready
+            </button>
+          </div>
+          <div class="chips-wrap mt-2" id="quick-chips">
+            <span class="chip">📋 How many tickets today?</span>
+            <span class="chip">🔴 Urgent open tickets</span>
+            <span class="chip">💻 Offline devices</span>
+          </div>
+          <small class="text-muted d-block mt-2">You can still use the keyword-based assistant below while setting up.</small>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- Welcome message (engine ready) -->
+    <div class="msg-row" id="welcome-msg">
+      <div class="avatar bot"><i class="fas fa-robot"></i></div>
+      <div>
+        <div class="bubble bot">
+          <strong>Hi! I'm FluidTrust AI</strong> — powered by <strong>{{ engine_model }}</strong> running locally on your server. 🎉<br>
+          I have live access to all your IT systems: tickets, devices, licenses, and backups. I also remember our full conversation — ask follow-up questions naturally!
+          <div class="chips-wrap" id="quick-chips">
+            <span class="chip">📋 Open tickets today</span>
+            <span class="chip">🔴 Urgent open tickets</span>
+            <span class="chip">📊 Ticket breakdown by company</span>
+            <span class="chip">💻 Offline devices — CG Logistics</span>
+            <span class="chip">📱 MDM device count</span>
+            <span class="chip">🔑 Office 365 licenses</span>
+            <span class="chip">💾 Datto backup status</span>
+            <span class="chip">👨‍💻 Technician workload</span>
+            <span class="chip">⚠️ What needs urgent attention?</span>
+            <span class="chip">📈 Ticket trend this week</span>
+            <span class="chip">🏆 Top company by tickets</span>
+            <span class="chip">🔁 Compare this week vs last week</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="chat-footer">
+    <div class="input-row">
+      <input type="text" id="chat-input" placeholder="Ask anything about your IT systems…" autocomplete="off" maxlength="500">
+      <button id="send-btn"><i class="fas fa-paper-plane me-1"></i>Send</button>
+    </div>
+    <div class="status-bar">
+      <span><span class="dot-live" id="live-dot"></span>Live DB</span>
+      <span id="model-label" style="color:#533483;font-weight:600;">
+        {% if engine_available %}🤖 {{ engine_model }}{% else %}⏳ Waiting for Ollama…{% endif %}
+      </span>
+      <span id="session-label" style="color:#adb5bd;"></span>
+      <span id="thinking-label" style="display:none;color:#533483;font-weight:600;">
+        <i class="fas fa-circle-notch fa-spin me-1"></i>AI is thinking…
+      </span>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const CSRF      = '{{ csrf_token }}';
+  const STATUS_URL = '{% url "engine_status" %}';
+  const CHAT_URL   = '{% url "chat_api" %}';
+  const SESSION_URL= '{% url "new_session" %}';
+
+  let sessionId       = null;
+  let engineAvailable = {{ engine_available|yesno:"true,false" }};
+  let engineModel     = '{{ engine_model }}';
+
+  // ── Markdown renderer ─────────────────────────────────────────────────────
+  function md(text) {
+    let h = text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      // Tables
+      .replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (_, head, body) => {
+        const ths  = head.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
+        const rows = body.trim().split('\n').map(r =>
+          '<tr>' + r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('') + '</tr>'
+        ).join('');
+        return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+      })
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^#{3}\s(.+)$/gm, '<h6 style="margin:.5rem 0 .2rem;font-weight:700;color:#0f3460;">$1</h6>')
+      .replace(/^#{2}\s(.+)$/gm, '<h5 style="margin:.6rem 0 .3rem;font-weight:700;color:#0f3460;">$1</h5>')
+      .replace(/^#{1}\s(.+)$/gm, '<h4 style="margin:.6rem 0 .3rem;font-weight:700;color:#0f3460;">$1</h4>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.+<\/li>\n?)+/g, m => `<ul style="margin:.3rem 0 .3rem 1.1rem;padding:0;">${m}</ul>`)
+      .replace(/⚠️/g, '<span style="color:#e67e22;">⚠️</span>')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    if (!h.startsWith('<')) h = `<p>${h}</p>`;
+    return h.replace(/<p><\/p>/g,'');
+  }
+
+  // ── Add message bubble ────────────────────────────────────────────────────
+  function addMsg(text, role, source, model) {
+    const body = document.getElementById('chat-body');
+    const now  = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const row  = document.createElement('div');
+    row.className = `msg-row ${role}`;
+
+    const av = document.createElement('div');
+    av.className = `avatar ${role}`;
+    av.innerHTML = role === 'bot' ? '<i class="fas fa-robot"></i>' : '{{ request.user.username|first|upper }}';
+
+    const wrap   = document.createElement('div');
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}`;
+
+    if (role === 'bot') {
+      bubble.innerHTML = md(text);
+      if (source) {
+        const badge = document.createElement('span');
+        const cls   = source === 'ollama' ? 'ollama' : source.includes('keyword') ? 'fallback' : 'error';
+        badge.className = `badge-source ${cls}`;
+        badge.textContent = source === 'ollama' ? (model || 'Ollama') : source === 'keyword_fallback' ? 'Keyword' : source;
+        bubble.appendChild(badge);
+      }
+    } else {
+      bubble.textContent = text;
+    }
+
+    const t = document.createElement('div');
+    t.className = 'msg-time';
+    t.textContent = now;
+    wrap.appendChild(bubble);
+    wrap.appendChild(t);
+    row.appendChild(av);
+    row.appendChild(wrap);
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  // ── Typing indicator ──────────────────────────────────────────────────────
+  function showTyping() {
+    document.getElementById('thinking-label').style.display = '';
+    document.getElementById('send-btn').disabled = true;
+    const body = document.getElementById('chat-body');
+    const el   = document.createElement('div');
+    el.id = 'typing-row';
+    el.className = 'typing-row';
+    el.innerHTML = `<div class="avatar bot"><i class="fas fa-robot"></i></div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>`;
+    body.appendChild(el);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function hideTyping() {
+    document.getElementById('thinking-label').style.display = 'none';
+    document.getElementById('send-btn').disabled = false;
+    const el = document.getElementById('typing-row');
+    if (el) el.remove();
+  }
+
+  // ── Send message ──────────────────────────────────────────────────────────
+  function send() {
+    const input = document.getElementById('chat-input');
+    const msg   = input.value.trim();
+    if (!msg) return;
+
+    // Remove chips after first message
+    const chips = document.getElementById('quick-chips');
+    if (chips) chips.remove();
+
+    addMsg(msg, 'user');
+    input.value = '';
+    showTyping();
+
+    fetch(CHAT_URL, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+      body:    JSON.stringify({message: msg, session_id: sessionId}),
+    })
+    .then(r => r.json())
+    .then(data => {
+      hideTyping();
+      if (data.error) {
+        addMsg('⚠️ ' + data.error, 'bot', 'error');
+      } else {
+        sessionId = data.session_id;
+        document.getElementById('session-label').textContent = 'Memory: on';
+        addMsg(data.response, 'bot', data.source, data.model);
+      }
+    })
+    .catch(() => {
+      hideTyping();
+      addMsg('Connection error — is the server running?', 'bot', 'error');
+    });
+  }
+
+  // ── New session ───────────────────────────────────────────────────────────
+  window.newSession = function () {
+    if (!confirm('Start a new conversation? History will be cleared from view.')) return;
+    fetch(SESSION_URL, {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:'{}',
+    })
+    .then(r => r.json())
+    .then(data => {
+      sessionId = data.session_id;
+      const body = document.getElementById('chat-body');
+      body.innerHTML = '';
+      document.getElementById('session-label').textContent = '';
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+      row.innerHTML = `<div class="avatar bot"><i class="fas fa-robot"></i></div>
+        <div><div class="bubble bot"><strong>New conversation started.</strong> Ask me anything!</div></div>`;
+      body.appendChild(row);
+    });
+  };
+
+  // ── Status check (for setup card button) ──────────────────────────────────
+  window.checkStatus = function () {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-1"></i>Checking…';
+    fetch(STATUS_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data.available) {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Not ready yet — try again';
+        addMsg(
+          '⏳ Ollama is not running yet. Make sure you:\n1. Installed Ollama from ollama.com/download\n2. Ran: `ollama pull llama3.2:3b`\n3. Ollama is running (check system tray)',
+          'bot', null
+        );
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Check if AI is ready';
+    });
+  };
+
+  // ── Keyboard ──────────────────────────────────────────────────────────────
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  document.getElementById('send-btn').addEventListener('click', send);
+
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('chip')) {
+      document.getElementById('chat-input').value = e.target.textContent.replace(/^[^\w☀-➿]+ ?/,'').trim();
+      send();
+    }
+  });
+
+  // ── Auto-poll status every 15s if engine offline ─────────────────────────
+  {% if not engine_available %}
+  let pollTimer = setInterval(() => {
+    fetch(STATUS_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data.available) {
+        clearInterval(pollTimer);
+        window.location.reload();
+      }
+    })
+    .catch(() => {});
+  }, 15000);
+  {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Sync Control Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-sync-alt text-primary me-2"></i>Data Sync Control Panel</h1>
+      <p class="text-muted mb-0 small">Admin only — view sync status and trigger manual data refresh</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'pulseway:api_vs_db_compare' %}" class="btn btn-warning btn-sm">
+        <i class="fas fa-exchange-alt me-1"></i>API vs DB Compare
+      </a>
+      <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back to Pulseway
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}{% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+
+  <!-- Scheduler Status -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm border-{% if pw_scheduler_running %}success{% else %}danger{% endif %} border-start border-4">
+        <div class="card-body">
+          <div class="small text-muted text-uppercase mb-1">Pulseway Auto-Sync</div>
+          <div class="h5 mb-0 {% if pw_scheduler_running %}text-success{% else %}text-danger{% endif %}">
+            <i class="fas fa-{% if pw_scheduler_running %}circle{% else %}times-circle{% endif %} me-1"></i>
+            {% if pw_scheduler_running %}Running{% else %}Stopped{% endif %}
+          </div>
+          <div class="small text-muted mt-1">Every {{ pw_interval }} min</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-{% if mdm_scheduler_running %}success{% else %}danger{% endif %} border-start border-4">
+        <div class="card-body">
+          <div class="small text-muted text-uppercase mb-1">MDM Auto-Sync</div>
+          <div class="h5 mb-0 {% if mdm_scheduler_running %}text-success{% else %}text-danger{% endif %}">
+            <i class="fas fa-{% if mdm_scheduler_running %}circle{% else %}times-circle{% endif %} me-1"></i>
+            {% if mdm_scheduler_running %}Running{% else %}Stopped{% endif %}
+          </div>
+          <div class="small text-muted mt-1">Every {{ mdm_interval }} min</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-primary border-start border-4">
+        <div class="card-body">
+          <div class="small text-muted text-uppercase mb-1">Pulseway Devices in DB</div>
+          <div class="h5 mb-0 text-primary">{{ pulseway_device_count }}</div>
+          <div class="small text-muted mt-1">{{ pulseway_online }} online</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-info border-start border-4">
+        <div class="card-body">
+          <div class="small text-muted text-uppercase mb-1">MDM Devices in DB</div>
+          <div class="h5 mb-0 text-info">{{ mdm_device_count }}</div>
+          <div class="small text-muted mt-1">across all customers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pulseway Sync Status -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="fas fa-history me-2 text-primary"></i>Pulseway Last Sync Times</span>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-dark">
+              <tr><th>Type</th><th>Last Sync</th><th>Status</th><th>Records</th><th>Age</th></tr>
+            </thead>
+            <tbody>
+              {% for key, sync in syncs.items %}
+              <tr>
+                <td class="fw-semibold">{{ sync.sync_type|title }}</td>
+                <td>{{ sync.last_sync|date:"d M Y H:i:s" }}</td>
+                <td>
+                  <span class="badge bg-{% if sync.status == 'success' %}success{% elif sync.status == 'failed' %}danger{% else %}warning{% endif %}">
+                    {{ sync.status }}
+                  </span>
+                </td>
+                <td>{{ sync.records_synced }}</td>
+                <td id="age-{{ key }}" class="text-muted small" data-ts="{{ sync.last_sync.isoformat }}">—</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No sync records found</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Sync Controls -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header py-2">
+          <span class="fw-semibold"><i class="fas fa-play-circle me-2 text-success"></i>Manual Sync Triggers</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Force an immediate sync without waiting for the scheduler. Useful when data appears stale.</p>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary" onclick="triggerSync('all')" id="btn-all">
+              <i class="fas fa-sync-alt me-2"></i>Sync All Pulseway Data
+            </button>
+            <button class="btn btn-outline-primary" onclick="triggerSync('devices')" id="btn-devices">
+              <i class="fas fa-desktop me-2"></i>Sync Device List Only
+            </button>
+            <button class="btn btn-warning" onclick="triggerSync('status')" id="btn-status">
+              <i class="fas fa-circle me-2"></i>Sync Device Status (Online/Offline)
+              <small class="d-block text-dark opacity-75">Per-device detail calls — takes ~{{ status_sync_estimate }} mins</small>
+            </button>
+            <button class="btn btn-outline-secondary" onclick="triggerSync('organizations')" id="btn-organizations">
+              <i class="fas fa-building me-2"></i>Sync Organizations Only
+            </button>
+            <hr class="my-1">
+            <button class="btn btn-outline-info" onclick="triggerMDMSync()" id="btn-mdm">
+              <i class="fas fa-mobile-alt me-2"></i>Sync MDM Devices
+            </button>
+          </div>
+          <div class="alert alert-info mt-3 py-2 small mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            <strong>Status sync</strong> calls each device's detail API one-by-one with a 2-second delay
+            to avoid rate limiting. The scheduler runs this automatically every 30 minutes.
+          </div>
+
+          <div id="sync-result" class="mt-3" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mt-3">
+        <div class="card-header py-2">
+          <span class="fw-semibold"><i class="fas fa-info-circle me-2 text-info"></i>Sync Schedule</span>
+        </div>
+        <div class="card-body small">
+          <ul class="mb-0 ps-3">
+            <li>Device <strong>list</strong> sync: every <strong>{{ pw_interval }} min</strong> (names, orgs)</li>
+            <li>Device <strong>status</strong> sync: every <strong>{{ pw_status_interval }} min</strong> (online/offline, CPU, patches)</li>
+            <li>MDM: live from API on each request (no scheduler)</li>
+            <li>Both Pulseway threads start automatically at server boot</li>
+            <li>If status looks wrong, click "Sync Device Status" above (takes ~{{ status_sync_estimate }} min)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Show age in minutes for each sync record
+document.querySelectorAll('[data-ts]').forEach(el => {
+  const ts = new Date(el.dataset.ts);
+  if (!isNaN(ts)) {
+    const mins = Math.round((Date.now() - ts) / 60000);
+    el.textContent = mins < 1 ? 'Just now' : `${mins} min ago`;
+    el.className = mins > 10 ? 'text-danger small fw-semibold' : 'text-success small';
+  }
+});
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...';
+  } else {
+    btn.disabled = false;
+  }
+}
+
+function showResult(success, message) {
+  const el = document.getElementById('sync-result');
+  el.style.display = 'block';
+  el.innerHTML = `<div class="alert alert-${success ? 'success' : 'danger'} mb-0 py-2">
+    <i class="fas fa-${success ? 'check-circle' : 'times-circle'} me-2"></i>${message}
+  </div>`;
+}
+
+function triggerSync(type) {
+  const btnMap = {all: 'btn-all', devices: 'btn-devices', organizations: 'btn-organizations'};
+  const btnId = btnMap[type];
+  setLoading(btnId, true);
+
+  const form = new FormData();
+  form.append('sync_type', type);
+  form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch('{% url "pulseway:trigger_device_sync" %}', {method: 'POST', body: form})
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showResult(true, `Sync complete — ${data.devices_in_db} devices in DB. Last sync: ${data.last_sync}`);
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        showResult(false, `Sync failed: ${data.error}`);
+      }
+    })
+    .catch(e => showResult(false, `Request failed: ${e}`))
+    .finally(() => {
+      document.getElementById(btnId).disabled = false;
+      document.getElementById(btnId).innerHTML = document.getElementById(btnId).innerHTML.replace(
+        '<span class="spinner-border spinner-border-sm me-2"></span>Syncing...', '');
+    });
+}
+
+function triggerMDMSync() {
+  setLoading('btn-mdm', true);
+  const csrf = '{{ csrf_token }}';
+  fetch('/mdm/api/sync-all/', {
+    method: 'POST',
+    headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/json'},
+    body: '{}'
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'success') {
+      showResult(true, `MDM sync done — ${data.total_created} created, ${data.total_updated} updated.`);
+    } else {
+      showResult(false, `MDM sync failed: ${data.message || 'Unknown error'}`);
+    }
+  })
+  .catch(e => showResult(false, `Request failed: ${e}`))
+  .finally(() => {
+    const btn = document.getElementById('btn-mdm');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-mobile-alt me-2"></i>Sync MDM Devices';
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.name }} - Customer Details{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ customer.name }}</h1>
+        <p class="text-gray-600">Customer ID: {{ customer.customer_id }}</p>
+    </div>
+    <div class="flex space-x-3">
+        <a href="{% url 'mdm:sync_customer_data' mdm_customer.id %}" 
+           class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+            <i class="fas fa-sync mr-2"></i>Sync Data
+        </a>
+        <a href="{% url 'mdm:enrollment_settings' customer.id %}" 
+           class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+            <i class="fas fa-cog mr-2"></i>Enrollment Settings
+        </a>
+        <a href="{% url 'mdm:add_device_group' customer.id %}" 
+           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Group
+        </a>
+    </div>
+</div>
+
+<!-- Customer Info -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-info-circle mr-2 text-blue-600"></i>Customer Information
+        </h3>
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-medium text-gray-500">Email</label>
+                <p class="text-gray-900">{{ customer.email }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Phone</label>
+                <p class="text-gray-900">{{ customer.phone|default:"N/A" }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Status</label>
+                <span class="px-2 py-1 text-xs rounded-full 
+                           {% if customer.status == 'active' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ customer.status|title }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-chart-bar mr-2 text-green-600"></i>Device Statistics
+        </h3>
+        <div class="space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Total Devices</span>
+                <span class="font-semibold">{{ devices.count }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Active</span>
+                <span class="font-semibold text-green-600">{{ devices|length }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Groups</span>
+                <span class="font-semibold">{{ groups.count }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Users</span>
+                <span class="font-semibold">{{ users.count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <i class="fas fa-clock mr-2 text-purple-600"></i>Activity
+        </h3>
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-medium text-gray-500">Created</label>
+                <p class="text-gray-900">{{ customer.created_at|date:"M d, Y H:i" }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Last Sync</label>
+                <p class="text-gray-900">{{ "now"|date:"M d, Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device Groups -->
+<div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-layer-group mr-2 text-blue-600"></i>Device Groups
+        </h2>
+    </div>
+    <div class="p-6">
+        {% if groups %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for group in groups %}
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-900 mb-2">{{ group.name }}</h4>
+                    <p class="text-sm text-gray-600 mb-2">{{ group.description|default:"No description" }}</p>
+                    <p class="text-sm text-gray-500">{{ group.devices.count }} devices</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-8">
+                <i class="fas fa-layer-group text-4xl mb-2 block"></i>
+                No device groups found. <a href="{% url 'mdm:add_device_group' customer.id %}" class="text-blue-600">Create your first group</a>
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Users Section -->
+<div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-users mr-2 text-purple-600"></i>Users
+        </h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for user in users %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <div class="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                    <i class="fas fa-user text-purple-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ user.user.get_full_name|default:user.user.username }}</div>
+                                <div class="text-sm text-gray-500">ID: {{ user.employee_id }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.user.email }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.department|default:"N/A" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.phone|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                        <i class="fas fa-users text-4xl mb-2 block"></i>
+                        No users found for this customer.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Devices -->
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-mobile-alt mr-2 text-green-600"></i>Devices
+        </h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for device in devices %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <i class="fas fa-{% if device.device_type == 'android' %}android{% elif device.device_type == 'ios' %}apple{% else %}laptop{% endif %} text-gray-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ device.device_name }}</div>
+                                <div class="text-sm text-gray-500">{{ device.model }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ device.device_type|title }}</div>
+                        <div class="text-sm text-gray-500">{{ device.os_version }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                   {% if device.status == 'active' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ device.status|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ device.last_seen|date:"M d, Y H:i"|default:"Never" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                        <i class="fas fa-mobile-alt text-4xl mb-2 block"></i>
+                        No devices found. Sync data to load devices from MDM.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

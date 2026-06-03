@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Licenses - {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h2 class="mb-1 fw-bold text-dark">
+            <i class="fas fa-building me-2 text-primary"></i>{{ company.name }} — License Management
+          </h2>
+          <p class="text-muted mb-0">Configure licenses and renewal notifications for this company</p>
+        </div>
+        <a href="{% url 'rbac:user_license_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row g-4">
+
+    <!-- LEFT: Contact email + Add/Update license form -->
+    <div class="col-lg-7">
+
+      <!-- Contact Email Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+          <i class="fas fa-envelope text-primary"></i>
+          <span class="fw-semibold">Renewal Notification Email</span>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_contact_email">
+            <div class="row g-2 align-items-end">
+              <div class="col">
+                <label class="form-label small text-muted mb-1">
+                  Company Contact Email
+                  <span class="text-muted fw-normal">(leave blank to notify all company users)</span>
+                </label>
+                <input type="email" name="contact_email" class="form-control"
+                       value="{{ company.contact_email }}"
+                       placeholder="e.g. renewals@company.com">
+              </div>
+              <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i>Save
+                </button>
+              </div>
+            </div>
+            {% if not company.contact_email %}
+            <div class="form-text text-warning mt-1">
+              <i class="fas fa-exclamation-triangle me-1"></i>
+              No contact email set — renewal alerts will be sent to all {{ company.name }} users.
+            </div>
+            {% else %}
+            <div class="form-text text-success mt-1">
+              <i class="fas fa-check-circle me-1"></i>
+              Renewal alerts will be sent to <strong>{{ company.contact_email }}</strong> (+ admins).
+            </div>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+
+      <!-- Add / Update License Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Add / Update License</h6>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_license">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Package</label>
+                <select name="package_id" class="form-select" required>
+                  <option value="">Select Package</option>
+                  {% for package in packages %}
+                  <option value="{{ package.id }}">{{ package.display_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">License Type</label>
+                <select name="license_type" class="form-select">
+                  <option value="Standard">Standard</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Total Licenses</label>
+                <input type="number" name="total_licenses" class="form-control" min="0" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Used Licenses</label>
+                <input type="number" name="used_licenses" class="form-control" min="0" value="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" name="expiry_date" class="form-control" required>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i>Save License
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Current Licenses -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <span><i class="fas fa-list me-2"></i>Current Licenses</span>
+          <span class="badge bg-white text-info">{{ licenses|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% for lic in licenses %}
+          {% with days_left=lic.expiry_date|timeuntil %}
+          <div class="p-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">{{ lic.package.display_name }}</div>
+                <div class="small text-muted">
+                  {{ lic.used_licenses }}/{{ lic.total_licenses }} used &bull;
+                  {{ lic.license_type }}
+                </div>
+                <!-- Days remaining indicator -->
+                {% if lic.is_expired %}
+                <span class="badge bg-danger mt-1">Expired {{ lic.expiry_date|date:"d M Y" }}</span>
+                {% else %}
+                  {% with diff=today|timesince:lic.expiry_date %}
+                  <span class="badge
+                    {% if lic.expiry_date <= today %}bg-danger
+                    {% elif lic.expiry_date|date:'U' <= today|date:'U'|add:'604800' %}bg-danger
+                    {% else %}bg-success{% endif %} mt-1">
+                    Expires {{ lic.expiry_date|date:"d M Y" }}
+                  </span>
+                  {% endwith %}
+                {% endif %}
+
+                <!-- Renewal reminders sent for this license -->
+                {% with lic.renewal_notifications.all as notifs %}
+                {% if notifs %}
+                <div class="mt-1">
+                  {% for n in notifs %}
+                  <span class="badge {% if n.success %}bg-secondary{% else %}bg-danger{% endif %} me-1"
+                        title="Sent {{ n.sent_at|date:'d M Y H:i' }} to {{ n.recipients }}">
+                    {{ n.days_before }}d
+                  </span>
+                  {% endfor %}
+                  <small class="text-muted">reminders sent</small>
+                </div>
+                {% endif %}
+                {% endwith %}
+              </div>
+
+              <!-- Manual send button -->
+              <form method="post" action="{% url 'rbac:trigger_renewal_email' lic.id %}"
+                    onsubmit="return confirm('Send renewal email for {{ lic.package.display_name }} now?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-warning btn-sm"
+                        title="Send renewal reminder email now">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endwith %}
+          {% empty %}
+          <div class="p-3 text-center text-muted">
+            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No licenses configured
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification History -->
+  {% if notifications %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+          <i class="fas fa-history text-secondary"></i>
+          <span class="fw-semibold">Recent Renewal Notification History</span>
+          <span class="badge bg-secondary ms-auto">{{ notifications|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Package</th>
+                  <th class="text-center">Trigger</th>
+                  <th>Expiry (snapshot)</th>
+                  <th>Sent At</th>
+                  <th>Recipients</th>
+                  <th class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for n in notifications %}
+                <tr>
+                  <td class="small fw-semibold">{{ n.license.package.display_name }}</td>
+                  <td class="text-center">
+                    <span class="badge
+                      {% if n.days_before == 1 %}bg-danger
+                      {% elif n.days_before == 7 %}bg-warning text-dark
+                      {% else %}bg-info{% endif %}">
+                      {{ n.days_before }}d before
+                    </span>
+                  </td>
+                  <td class="small">{{ n.license_expiry_date|date:"d M Y" }}</td>
+                  <td class="small text-muted">{{ n.sent_at|date:"d M Y H:i" }}</td>
+                  <td class="small text-muted" style="max-width:200px;word-break:break-all;">
+                    {{ n.recipients }}
+                  </td>
+                  <td class="text-center">
+                    {% if n.success %}
+                    <span class="badge bg-success">Sent</span>
+                    {% else %}
+                    <span class="badge bg-danger" title="{{ n.error_message }}">Failed</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

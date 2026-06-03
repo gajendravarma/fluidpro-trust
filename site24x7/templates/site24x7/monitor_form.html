@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block title %}{% if editing %}Edit{% else %}Add{% endif %} Monitor — {{ cust_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1 small">
+        <li class="breadcrumb-item"><a href="{% url 'site24x7:site24x7_dashboard' %}">Site24x7</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'site24x7:monitor_list' zaaid %}">{{ cust_name }}</a></li>
+        <li class="breadcrumb-item active">{% if editing %}Edit{% else %}Add Monitor{% endif %}</li>
+      </ol>
+    </nav>
+    <h1 class="h3 mb-0 fw-bold">
+      <i class="fas fa-{% if editing %}edit{% else %}plus{% endif %} text-primary me-2"></i>
+      {% if editing %}Edit Monitor{% else %}Add Monitor{% endif %}
+    </h1>
+  </div>
+
+  {% if api_error %}
+  <div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i><strong>API Error:</strong> {{ api_error }}
+    <div class="small mt-1 text-muted">
+      Note: Write operations (create/edit) require the OAuth token to have <code>Site24x7.Admin.All</code> scope.
+      If your token was generated with read-only scope, these operations will fail.
+      Please regenerate the token with write permissions from the Zoho API Console.
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+          Monitor Configuration
+          {% if editing %}<span class="badge bg-secondary ms-2">ID: {{ monitor_id }}</span>{% endif %}
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Type selector -->
+            {% if not editing %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Monitor Type <span class="text-danger">*</span></label>
+              <select name="type" id="monitorType" class="form-select" onchange="showTypeFields(this.value)" required>
+                {% for t in monitor_types %}
+                <option value="{{ t }}" {% if form_data.type == t %}selected{% endif %}>
+                  {{ type_labels|default:t }}
+                  {% for k, v in type_labels.items %}{% if k == t %}{{ v }}{% endif %}{% endfor %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% else %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Monitor Type</label>
+              <input type="text" class="form-control" value="{{ form_data.type }}" disabled>
+              <input type="hidden" name="type" value="{{ form_data.type }}">
+            </div>
+            {% endif %}
+
+            <!-- Common fields -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Display Name <span class="text-danger">*</span></label>
+              <input type="text" name="display_name" class="form-control"
+                     value="{{ form_data.display_name|default:'' }}" required maxlength="100">
+            </div>
+
+            <!-- URL monitor fields -->
+            <div id="fields-URL" class="type-fields">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Website URL <span class="text-danger">*</span></label>
+                <input type="url" name="website" class="form-control"
+                       value="{{ form_data.website|default:'' }}" placeholder="https://example.com">
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">HTTP Method</label>
+                  <select name="http_method" class="form-select">
+                    <option value="G" {% if form_data.http_method == 'G' %}selected{% endif %}>GET</option>
+                    <option value="P" {% if form_data.http_method == 'P' %}selected{% endif %}>POST</option>
+                    <option value="H" {% if form_data.http_method == 'H' %}selected{% endif %}>HEAD</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">HTTP Protocol</label>
+                  <select name="http_protocol" class="form-select">
+                    <option value="H1.1" {% if form_data.http_protocol == 'H1.1' %}selected{% endif %}>HTTP 1.1</option>
+                    <option value="H2"   {% if form_data.http_protocol == 'H2'   %}selected{% endif %}>HTTP 2</option>
+                  </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="ignore_cert_err" id="ignoreCert"
+                           {% if form_data.ignore_cert_err %}checked{% endif %}>
+                    <label class="form-check-label small" for="ignoreCert">Ignore SSL errors</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ISP monitor fields -->
+            <div id="fields-ISP" class="type-fields" style="display:none;">
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Hostname / IP</label>
+                  <input type="text" name="hostname" class="form-control"
+                         value="{{ form_data.hostname|default:'' }}" placeholder="192.168.1.1">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Protocol</label>
+                  <select name="protocol" class="form-select">
+                    <option value="1" {% if form_data.protocol == '1' %}selected{% endif %}>ICMP</option>
+                    <option value="2" {% if form_data.protocol == '2' %}selected{% endif %}>TCP</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Port</label>
+                  <input type="number" name="port" class="form-control"
+                         value="{{ form_data.port|default:'443' }}" min="1" max="65535">
+                </div>
+              </div>
+            </div>
+
+            <!-- SSL Certificate fields -->
+            <div id="fields-SSL_CERT" class="type-fields" style="display:none;">
+              <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">Domain Name</label>
+                  <input type="text" name="domain_name" class="form-control"
+                         value="{{ form_data.domain_name|default:'' }}" placeholder="example.com">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Alert before expiry (days)</label>
+                  <input type="number" name="expire_days" class="form-control"
+                         value="{{ form_data.expire_days|default:'30' }}" min="1">
+                </div>
+              </div>
+            </div>
+
+            <!-- Domain Expiry fields -->
+            <div id="fields-DOMAINEXPIRY" class="type-fields" style="display:none;">
+              <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">Hostname</label>
+                  <input type="text" name="host_name" class="form-control"
+                         value="{{ form_data.host_name|default:'' }}" placeholder="example.com">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Alert before expiry (days)</label>
+                  <input type="number" name="expire_days" class="form-control"
+                         value="{{ form_data.expire_days|default:'30' }}" min="1">
+                </div>
+              </div>
+            </div>
+
+            <!-- NETWORKDEVICE (edit only — read-only display) -->
+            {% if editing and form_data.type == 'NETWORKDEVICE' %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Device IP</label>
+              <input type="text" class="form-control" value="{{ form_data.ipaddress|default:form_data.device_name|default:'' }}" disabled>
+            </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- Common config -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Check Frequency</label>
+                <select name="check_frequency" class="form-select">
+                  <option value="1"  {% if form_data.check_frequency == '1'  %}selected{% endif %}>1 min</option>
+                  <option value="5"  {% if form_data.check_frequency == '5'  %}selected{% endif %}>5 min</option>
+                  <option value="10" {% if form_data.check_frequency == '10' %}selected{% endif %}>10 min</option>
+                  <option value="15" {% if form_data.check_frequency == '15' %}selected{% endif %}>15 min</option>
+                  <option value="30" {% if form_data.check_frequency == '30' %}selected{% endif %}>30 min</option>
+                  <option value="60" {% if form_data.check_frequency == '60' %}selected{% endif %}>1 hour</option>
+                  <option value="1440" {% if form_data.check_frequency == '1440' %}selected{% endif %}>Daily</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Timeout (sec)</label>
+                <input type="number" name="timeout" class="form-control"
+                       value="{{ form_data.timeout|default:'15' }}" min="5" max="120">
+              </div>
+            </div>
+
+            <!-- Profiles -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Location Profile</label>
+                <select name="location_profile_id" class="form-select">
+                  {% for lp in location_profiles %}
+                  <option value="{{ lp.profile_id }}"
+                    {% if form_data.location_profile_id == lp.profile_id %}selected{% endif %}>
+                    {{ lp.profile_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Notification Profile</label>
+                <select name="notification_profile_id" class="form-select">
+                  {% for np in notification_profiles %}
+                  <option value="{{ np.profile_id }}"
+                    {% if form_data.notification_profile_id == np.profile_id %}selected{% endif %}>
+                    {{ np.profile_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Threshold Profile</label>
+                <select name="threshold_profile_id" class="form-select">
+                  {% for tp in threshold_profiles %}
+                  <option value="{{ tp.profile_id }}"
+                    {% if form_data.threshold_profile_id == tp.profile_id %}selected{% endif %}>
+                    {{ tp.profile_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">User Groups (Alert recipients)</label>
+                <select name="user_group_ids" class="form-select" multiple>
+                  {% for ug in user_groups %}
+                  <option value="{{ ug.user_group_id }}"
+                    {% if ug.user_group_id in form_data.user_group_ids %}selected{% endif %}>
+                    {{ ug.display_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text small">Hold Ctrl/Cmd to select multiple</div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{% url 'site24x7:monitor_list' zaaid %}" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>{% if editing %}Save Changes{% else %}Create Monitor{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTypeFields(type) {
+  document.querySelectorAll('.type-fields').forEach(el => el.style.display = 'none');
+  const el = document.getElementById('fields-' + type);
+  if (el) el.style.display = '';
+}
+// Init on load
+const initialType = document.getElementById('monitorType');
+if (initialType) showTypeFields(initialType.value);
+else showTypeFields('{{ form_data.type|default:"URL" }}');
+</script>
+{% endblock %}

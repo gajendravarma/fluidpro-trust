@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+
+{% block title %}App Policies & Blacklist — MDM Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .section-header { border-left: 4px solid; padding-left: .75rem; }
+  .section-header.danger { border-color: #dc3545; }
+  .section-header.primary { border-color: #0d6efd; }
+  .app-row td { vertical-align: middle; font-size: .87rem; }
+  .app-row:hover { background: #f8f9ff; }
+  .platform-badge { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .policy-badge   { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .search-box { max-width: 280px; }
+  .tab-count { font-size: .72rem; background: rgba(255,255,255,.25); border-radius: 20px; padding: 1px 7px; margin-left: 4px; }
+  .api-notice { border: 1px dashed #dee2e6; background: #f8f9fa; border-radius: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="fas fa-ban me-2 text-danger"></i>App Policies &amp; Blacklist</h4>
+      <small class="text-muted">Manage blocked apps via ManageEngine MDM API</small>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="refreshAll()">
+        <i class="fas fa-sync-alt me-1"></i>Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-danger bg-opacity-10 rounded-3 p-2"><i class="fas fa-ban text-danger fs-5"></i></div>
+          <div>
+            <div class="fw-bold fs-5 text-danger" id="blacklistCount">{{ api_blacklist|length }}</div>
+            <div class="text-muted" style="font-size:.78rem">Blacklisted Apps</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-primary bg-opacity-10 rounded-3 p-2"><i class="fas fa-box-open text-primary fs-5"></i></div>
+          <div>
+            <div class="fw-bold fs-5 text-primary" id="repoCount">{{ api_app_repo|length }}</div>
+            <div class="text-muted" style="font-size:.78rem">App Repository</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-success bg-opacity-10 rounded-3 p-2"><i class="fas fa-check-circle text-success fs-5"></i></div>
+          <div>
+            <div class="fw-bold fs-5 text-success">{{ local_policies|length }}</div>
+            <div class="text-muted" style="font-size:.78rem">Local Policies</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-{% if api_available %}success{% else %}warning{% endif %} bg-opacity-10 rounded-3 p-2">
+            <i class="fas fa-plug text-{% if api_available %}success{% else %}warning{% endif %} fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-5 text-{% if api_available %}success{% else %}warning{% endif %}">
+              {% if api_available %}Live{% else %}Offline{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:.78rem">MDM API Status</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-0" id="policyTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-blacklist">
+        <i class="fas fa-ban me-1 text-danger"></i>Blacklisted Apps
+        <span class="tab-count bg-danger">{{ api_blacklist|length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-repo" id="repoTab">
+        <i class="fas fa-box-open me-1 text-primary"></i>App Repository
+        <span class="tab-count bg-primary">{{ api_app_repo|length }}</span>
+      </button>
+    </li>
+    {% if local_policies %}
+    <li class="nav-item">
+      <button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-local">
+        <i class="fas fa-database me-1 text-secondary"></i>Local Policies
+        <span class="tab-count bg-secondary">{{ local_policies|length }}</span>
+      </button>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="tab-content border border-top-0 rounded-bottom bg-white shadow-sm">
+
+    <!-- ── BLACKLIST TAB ── -->
+    <div class="tab-pane fade show active p-3" id="tab-blacklist">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="section-header danger fw-semibold mb-0">Currently Blacklisted Apps</h6>
+        <input type="text" class="form-control form-control-sm search-box"
+               placeholder="Search blacklist…" oninput="filterTable('blacklistTable', this.value)">
+      </div>
+
+      {% if not api_available %}
+      <div class="api-notice p-3 mb-3 text-center">
+        <i class="fas fa-plug text-warning me-2"></i>
+        MDM API is not connected. Set <code>MDM_API_BASE_URL</code> and <code>MDM_API_KEY</code> in settings.
+        <br><small class="text-muted">Showing local policy records below.</small>
+      </div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="blacklistTable">
+          <thead class="table-light">
+            <tr>
+              <th style="font-size:.75rem">App Name</th>
+              <th style="font-size:.75rem">Identifier / Bundle ID</th>
+              <th style="font-size:.75rem">Platform</th>
+              <th style="font-size:.75rem">App Group ID</th>
+              <th style="font-size:.75rem; width:100px">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in api_blacklist %}
+            <tr class="app-row">
+              <td class="fw-semibold">
+                {{ app.appname|default:app.app_name|default:"—" }}
+              </td>
+              <td><small class="text-muted">{{ app.identifier|default:app.bundle_id|default:"—" }}</small></td>
+              <td>
+                {% with p=app.platform|default:app.platform_type|default:"" %}
+                <span class="platform-badge
+                  {% if p == '2' or p == 'android' %}bg-success bg-opacity-15 text-success
+                  {% elif p == '1' or p == 'ios' %}bg-dark bg-opacity-10 text-dark
+                  {% else %}bg-primary bg-opacity-15 text-primary{% endif %}">
+                  {% if p == '2' or p == 'android' %}<i class="fab fa-android me-1"></i>Android
+                  {% elif p == '1' or p == 'ios' %}<i class="fab fa-apple me-1"></i>iOS
+                  {% else %}{{ p|title|default:"—" }}{% endif %}
+                </span>
+                {% endwith %}
+              </td>
+              <td><small class="text-muted font-monospace">{{ app.appgroupid|default:app.app_group_id|default:app.app_id|default:"—" }}</small></td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger"
+                        onclick="removeFromBlacklist('{{ app.appgroupid|default:app.app_group_id|default:app.app_id }}', '{{ app.appname|default:app.app_name|escapejs }}')">
+                  <i class="fas fa-trash-alt me-1"></i>Remove
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-5 text-muted">
+                <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+                No apps are blacklisted{% if not api_available %} (API offline){% endif %}.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── APP REPOSITORY TAB ── -->
+    <div class="tab-pane fade p-3" id="tab-repo">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="section-header primary fw-semibold mb-0">App Repository — Available to Blacklist</h6>
+        <input type="text" class="form-control form-control-sm search-box"
+               placeholder="Search repository…" oninput="filterTable('repoTable', this.value)">
+      </div>
+
+      {% if not api_app_repo %}
+      <div class="api-notice p-3 mb-3 text-center">
+        <i class="fas fa-plug text-warning me-2"></i>
+        No apps found in repository.
+        {% if not api_available %}MDM API is offline — connect to view available apps.{% endif %}
+      </div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="repoTable">
+          <thead class="table-light">
+            <tr>
+              <th style="font-size:.75rem">App Name</th>
+              <th style="font-size:.75rem">Bundle / Package ID</th>
+              <th style="font-size:.75rem">Version</th>
+              <th style="font-size:.75rem">Platform</th>
+              <th style="font-size:.75rem">Type</th>
+              <th style="font-size:.75rem; width:140px">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in api_app_repo %}
+            {% with agid=app.appgroupid|default:app.app_group_id|default:app.app_id|default:"" %}
+            <tr class="app-row">
+              <td class="fw-semibold">{{ app.app_name|default:app.appname|default:"—" }}</td>
+              <td><small class="text-muted font-monospace">{{ app.bundle_id|default:app.identifier|default:"—" }}</small></td>
+              <td><small>{{ app.version|default:"—" }}</small></td>
+              <td>
+                {% with p=app.platform_type|default:app.platform|default:"" %}
+                <span class="platform-badge
+                  {% if p == '2' or p == 'android' %}bg-success bg-opacity-15 text-success
+                  {% elif p == '1' or p == 'ios' %}bg-dark bg-opacity-10 text-dark
+                  {% else %}bg-primary bg-opacity-15 text-primary{% endif %}">
+                  {% if p == '2' or p == 'android' %}<i class="fab fa-android me-1"></i>Android
+                  {% elif p == '1' or p == 'ios' %}<i class="fab fa-apple me-1"></i>iOS
+                  {% else %}{{ p|title|default:"—" }}{% endif %}
+                </span>
+                {% endwith %}
+              </td>
+              <td>
+                <span class="policy-badge bg-secondary bg-opacity-10 text-secondary">
+                  {{ app.app_type|default:app.type|default:"—" }}
+                </span>
+              </td>
+              <td>
+                {% if agid in blacklisted_ids %}
+                <span class="badge bg-danger rounded-pill px-2 py-1">
+                  <i class="fas fa-ban me-1"></i>Blacklisted
+                </span>
+                {% else %}
+                <button class="btn btn-sm btn-danger"
+                        onclick="addToBlacklist('{{ agid }}', '{{ app.app_name|default:app.appname|escapejs }}', '{{ app.bundle_id|default:app.identifier|escapejs }}')">
+                  <i class="fas fa-ban me-1"></i>Blacklist
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
+                No apps in repository{% if not api_available %} (API offline){% endif %}.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── LOCAL POLICIES TAB ── -->
+    {% if local_policies %}
+    <div class="tab-pane fade p-3" id="tab-local">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="section-header primary fw-semibold mb-0">Local DB Policies</h6>
+        <small class="text-muted">Stored locally in the portal database</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="font-size:.75rem">App Name</th>
+              <th style="font-size:.75rem">Package Name</th>
+              <th style="font-size:.75rem">Policy Type</th>
+              <th style="font-size:.75rem">Company</th>
+              <th style="font-size:.75rem">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for policy in local_policies %}
+            <tr class="app-row">
+              <td class="fw-semibold">{{ policy.app_name }}</td>
+              <td><small class="text-muted font-monospace">{{ policy.package_name }}</small></td>
+              <td>
+                <span class="policy-badge
+                  {% if policy.policy_type == 'block' %}bg-danger bg-opacity-15 text-danger
+                  {% elif policy.policy_type == 'allow' %}bg-success bg-opacity-15 text-success
+                  {% else %}bg-warning bg-opacity-15 text-warning{% endif %}">
+                  {{ policy.get_policy_type_display }}
+                </span>
+              </td>
+              <td><small class="text-muted">{{ policy.mdm_customer.company.name }}</small></td>
+              <td><small class="text-muted">{{ policy.created_at|date:"d M Y" }}</small></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div><!-- /tab-content -->
+
+</div>
+
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="policyToast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMsg"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function showToast(msg, ok) {
+  const el = document.getElementById('policyToast');
+  el.className = 'toast align-items-center text-white border-0 ' + (ok ? 'bg-success' : 'bg-danger');
+  document.getElementById('toastMsg').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(el, {delay: 5000}).show();
+}
+
+function filterTable(tableId, query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function addToBlacklist(appGroupId, appName, packageName) {
+  if (!confirm(`Blacklist "${appName}"?\n\nThis will block the app on all managed devices.`)) return;
+  const body = new FormData();
+  body.append('app_group_id', appGroupId);
+  body.append('app_name', appName);
+  body.append('package_name', packageName);
+  body.append('csrfmiddlewaretoken', CSRF);
+  fetch('/mdm/policies/add-blacklist/', {method: 'POST', body})
+  .then(r => r.json())
+  .then(d => {
+    showToast(d.status === 'success' ? `✓ "${appName}" blacklisted.`
+                                     : `✗ ${d.message}`,
+              d.status === 'success');
+    if (d.status === 'success' || d.status === 'warning') {
+      setTimeout(() => location.reload(), 1800);
+    }
+  })
+  .catch(() => showToast('Network error.', false));
+}
+
+function removeFromBlacklist(appGroupId, appName) {
+  if (!confirm(`Remove "${appName}" from the blacklist?`)) return;
+  const body = new FormData();
+  body.append('csrfmiddlewaretoken', CSRF);
+  fetch(`/mdm/policies/remove-blacklist/${appGroupId}/`, {method: 'POST', body})
+  .then(r => r.json())
+  .then(d => {
+    showToast(d.status === 'success' ? `✓ "${appName}" removed from blacklist.`
+                                     : `✗ ${d.message}`,
+              d.status === 'success');
+    if (d.status === 'success' || d.status === 'warning') {
+      setTimeout(() => location.reload(), 1800);
+    }
+  })
+  .catch(() => showToast('Network error.', false));
+}
+
+function refreshAll() {
+  location.reload();
+}
+</script>
+{% endblock %}

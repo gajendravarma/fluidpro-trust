@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}OneDrive Storage - Microsoft 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-cloud text-info me-2"></i>OneDrive Storage Report</h1>
+      <p class="text-muted mb-0 small">Per-user OneDrive storage usage</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}{% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+
+  {% if is_demo %}
+  <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Demo mode — Office 365 credentials not configured.</div>
+  {% endif %}
+
+  <!-- Period selector & summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex gap-2 align-items-center flex-wrap">
+          <span class="fw-semibold">Period:</span>
+          <a href="?period=D7"   class="btn btn-sm {% if period == 'D7'   %}btn-info{% else %}btn-outline-info{% endif %}">7 days</a>
+          <a href="?period=D30"  class="btn btn-sm {% if period == 'D30'  %}btn-info{% else %}btn-outline-info{% endif %}">30 days</a>
+          <a href="?period=D90"  class="btn btn-sm {% if period == 'D90'  %}btn-info{% else %}btn-outline-info{% endif %}">90 days</a>
+          <a href="?period=D180" class="btn btn-sm {% if period == 'D180' %}btn-info{% else %}btn-outline-info{% endif %}">180 days</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-info h-100">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-info">{{ total_used_gb }} GB</div>
+          <div class="small text-muted">Total Used ({{ total_users }} users)</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-danger h-100">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-danger">{{ high_usage_count }}</div>
+          <div class="small text-muted">Users at &ge;80% Quota</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if high_usage_count %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>{{ high_usage_count }}</strong> user(s) are using 80% or more of their OneDrive quota.
+    Consider increasing their storage or asking them to clean up.
+  </div>
+  {% endif %}
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>User</th>
+              <th>Used</th>
+              <th>Quota</th>
+              <th style="width:200px;">Usage</th>
+              <th>Files</th>
+              <th>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr class="{% if u.used_percent >= 80 %}table-danger{% elif u.used_percent >= 60 %}table-warning{% endif %}">
+              <td>
+                <div class="fw-semibold">{{ u.display_name|default:u.upn }}</div>
+                <small class="text-muted">{{ u.upn }}</small>
+              </td>
+              <td><strong>{{ u.used_gb }} GB</strong></td>
+              <td>{{ u.quota_gb }} GB</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:8px;">
+                    <div class="progress-bar {% if u.used_percent >= 80 %}bg-danger{% elif u.used_percent >= 60 %}bg-warning{% else %}bg-info{% endif %}"
+                         style="width:{{ u.used_percent }}%"></div>
+                  </div>
+                  <span class="small" style="min-width:40px;">{{ u.used_percent }}%</span>
+                </div>
+              </td>
+              <td>{{ u.file_count|default:"—" }}</td>
+              <td><small>{{ u.last_activity|default:"—" }}</small></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No OneDrive data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if users.has_other_pages %}
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if users.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.previous_page_number }}&period={{ period }}">«</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ users.number }} / {{ users.paginator.num_pages }}</span></li>
+      {% if users.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.next_page_number }}&period={{ period }}">»</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}

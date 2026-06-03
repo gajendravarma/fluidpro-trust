@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% block title %}Office 365 Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fab fa-microsoft text-primary me-2"></i>Microsoft 365 Dashboard</h1>
+      <p class="text-muted mb-0 small">License, mailbox &amp; user overview</p>
+    </div>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      {% if user_role != 'customer' %}
+      <!-- Download buttons -->
+      <div class="btn-group">
+        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-download me-1"></i>Export
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'office365:download_all_users' %}">
+            <i class="fas fa-users me-2 text-primary"></i>All Users &amp; Licenses (.csv)
+          </a></li>
+          <li><a class="dropdown-item" href="{% url 'office365:download_license_report' %}">
+            <i class="fas fa-certificate me-2 text-warning"></i>License SKU Report (.csv)
+          </a></li>
+          <li><a class="dropdown-item" href="{% url 'office365:download_high_storage' %}">
+            <i class="fas fa-database me-2 text-danger"></i>High Storage Mailboxes (.csv)
+          </a></li>
+        </ul>
+      </div>
+      <!-- Company selector -->
+      <form method="post" class="d-flex align-items-center gap-2">
+        {% csrf_token %}
+        <select name="customer" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          {% for key, name in customers %}
+          <option value="{{ key }}" {% if key == selected_customer %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger alert-dismissible fade show">
+    <i class="fas fa-exclamation-triangle me-2"></i><strong>Connection Error:</strong> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  {% if is_demo %}
+  <div class="alert alert-warning">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Not configured:</strong> No Microsoft 365 credentials set for this company.
+    Contact your admin to add the Azure App credentials for this tenant.
+    <a href="#required-permissions" class="ms-2 alert-link">View required permissions</a>
+  </div>
+  {% else %}
+
+  {% if warning_skus %}
+  <div class="alert alert-warning alert-dismissible fade show mb-3">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Subscription Payment Warning:</strong>
+    {% for s in warning_skus %}
+      <strong>{{ s.display_name }}</strong> — {{ s.consumed }} of {{ s.total }} seats assigned but subscription is in <strong>grace/warning period</strong> (payment overdue).
+    {% endfor %}
+    Action required: renew in <a href="https://admin.microsoft.com" target="_blank" class="alert-link">Microsoft Admin Center → Billing</a> to avoid service interruption.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+  {% if overallocated_skus %}
+  <div class="alert alert-danger alert-dismissible fade show mb-3">
+    <i class="fas fa-times-circle me-2"></i>
+    <strong>Expired / Overallocated Licenses:</strong>
+    {% for s in overallocated_skus %}
+      <strong>{{ s.display_name }}</strong> — subscription fully lapsed but {{ s.consumed }} seat(s) still assigned.
+    {% endfor %}
+    Please renew or remove the license assignments.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <!-- Stat Cards Row 1: License totals -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-primary border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Total Licenses</div>
+          <div class="h3 fw-bold mb-0">{{ total_licenses }}</div>
+          <div class="text-muted small mt-1">purchased seats</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-success border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Assigned</div>
+          <div class="h3 fw-bold mb-0 {% if consumed_licenses > total_licenses %}text-danger{% else %}text-success{% endif %}">
+            {{ consumed_licenses }}
+          </div>
+          <div class="small text-muted mt-1">
+            {% if total_licenses > 0 %}{{ license_usage_percent }}% of purchased{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-warning border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Available</div>
+          <div class="h3 fw-bold mb-0 text-warning">{{ available_licenses }}</div>
+          <div class="small text-muted mt-1">unassigned seats</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-danger border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">High Mailbox Usage</div>
+          <div class="h3 fw-bold mb-0 text-danger">{{ high_usage_count }}</div>
+          <div class="small text-muted mt-1">of {{ total_mailboxes }} mailboxes &gt;85%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tier Breakdown Row -->
+  {% if license_breakdown %}
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="fas fa-layer-group me-2 text-primary"></i>License Tier Breakdown</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% with t=license_breakdown.basic|default:0 c=license_breakdown.basic_consumed|default:0 %}
+            <div class="col-6 col-md-3">
+              <div class="rounded p-3 bg-light text-center">
+                <div class="text-muted small mb-1">Basic</div>
+                <div class="h4 mb-0 text-secondary">{{ t }}</div>
+                <div class="small {% if c > t %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                  {{ c }} assigned{% if c > t %} <i class="fas fa-exclamation-triangle"></i>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endwith %}
+            {% with t=license_breakdown.standard|default:0 c=license_breakdown.standard_consumed|default:0 %}
+            <div class="col-6 col-md-3">
+              <div class="rounded p-3 text-center" style="background:#e8f4fd;">
+                <div class="text-muted small mb-1">Standard</div>
+                <div class="h4 mb-0 text-primary">{{ t }}</div>
+                <div class="small {% if c > t %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                  {{ c }} assigned{% if c > t %} <i class="fas fa-exclamation-triangle"></i>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endwith %}
+            {% with t=license_breakdown.premium|default:0 c=license_breakdown.premium_consumed|default:0 %}
+            <div class="col-6 col-md-3">
+              <div class="rounded p-3 text-center" style="background:#fff3cd;">
+                <div class="text-muted small mb-1">Premium</div>
+                <div class="h4 mb-0 text-warning">{{ t }}</div>
+                <div class="small {% if c > t %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                  {{ c }} assigned{% if c > t %} <i class="fas fa-exclamation-triangle"></i>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endwith %}
+            {% with t=license_breakdown.other|default:0 c=license_breakdown.other_consumed|default:0 %}
+            <div class="col-6 col-md-3">
+              <div class="rounded p-3 bg-light text-center">
+                <div class="text-muted small mb-1">Add-ons / Other</div>
+                <div class="h4 mb-0 text-muted">{{ t }}</div>
+                <div class="small {% if c > t %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                  {{ c }} assigned{% if c > t %} <i class="fas fa-exclamation-triangle"></i>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- License SKUs + Mailboxes + Users -->
+  <div class="row g-3 mb-4">
+
+    <!-- License SKU table -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="fas fa-certificate me-2 text-warning"></i>License SKUs</span>
+          {% if user_role != 'customer' %}
+          <a href="{% url 'office365:download_license_report' %}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-download me-1"></i>Export CSV
+          </a>
+          {% endif %}
+        </div>
+        {% if license_summary %}
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>License</th>
+                  <th class="text-center">Total</th>
+                  <th class="text-center">Used</th>
+                  <th class="text-center">Free</th>
+                  <th style="width:120px">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sku in license_summary %}
+                <tr class="{% if sku.in_warning %}table-warning{% elif sku.overallocated %}table-danger{% endif %}">
+                  <td>
+                    <div class="fw-semibold small">
+                      {{ sku.display_name }}
+                      {% if sku.in_warning %}
+                        <span class="badge bg-warning text-dark ms-1" title="Subscription in grace/warning period — payment overdue">
+                          <i class="fas fa-exclamation-triangle me-1"></i>Warning
+                        </span>
+                      {% elif sku.overallocated %}
+                        <span class="badge bg-danger ms-1" title="Subscription expired">
+                          <i class="fas fa-times-circle me-1"></i>Expired
+                        </span>
+                      {% endif %}
+                    </div>
+                    <div class="text-muted" style="font-size:.7rem;">
+                      <span class="badge {% if sku.tier == 'premium' %}bg-warning text-dark{% elif sku.tier == 'standard' %}bg-primary{% elif sku.tier == 'basic' %}bg-secondary{% else %}bg-light text-dark{% endif %} me-1">
+                        {{ sku.tier|title }}
+                      </span>
+                      {{ sku.sku_name }}
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    {{ sku.total }}
+                    {% if sku.warning %}
+                    <br><small class="text-warning" title="{{ sku.warning }} seats are in renewal/grace period — subscription pending renewal">
+                      <i class="fas fa-sync-alt me-1"></i>+{{ sku.warning }} renewing
+                    </small>
+                    {% endif %}
+                  </td>
+                  <td class="text-center text-success fw-semibold">{{ sku.consumed }}</td>
+                  <td class="text-center {% if sku.available == 0 %}text-danger{% else %}text-muted{% endif %}">{{ sku.available }}</td>
+                  <td>
+                    <div class="progress" style="height:6px;">
+                      <div class="progress-bar {% if sku.usage_percent >= 90 %}bg-danger{% elif sku.usage_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}"
+                           style="width:{{ sku.usage_percent }}%"></div>
+                    </div>
+                    <div class="text-muted text-end" style="font-size:.7rem;">{{ sku.usage_percent }}%</div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card-body text-center text-muted py-4">
+          <i class="fas fa-certificate fa-2x mb-2 d-block text-muted"></i>
+          No license data available.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Mailbox High Usage -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="fas fa-envelope me-2 text-danger"></i>High Storage Mailboxes</span>
+          {% if mailbox_data.high_usage %}
+          <a href="{% url 'office365:download_high_storage' %}" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-download me-1"></i>Export
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% if mailbox_data.high_usage %}
+          <div class="table-responsive" style="max-height:340px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>Mailbox</th>
+                  <th class="text-end">Used</th>
+                  <th style="width:80px">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mb in mailbox_data.high_usage %}
+                <tr>
+                  <td>
+                    <div class="small fw-semibold">{{ mb.display_name|default:mb.upn }}</div>
+                    <div class="text-muted" style="font-size:.7rem;">{{ mb.upn }}</div>
+                  </td>
+                  <td class="text-end small">{{ mb.used_gb|floatformat:1 }} / {{ mb.quota_gb|floatformat:1 }} GB</td>
+                  <td>
+                    <div class="progress" style="height:6px;">
+                      <div class="progress-bar bg-danger" style="width:{{ mb.used_percent|floatformat:0 }}%"></div>
+                    </div>
+                    <div style="font-size:.7rem;" class="text-danger text-end">{{ mb.used_percent|floatformat:1 }}%</div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+            All mailboxes below 85% storage.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent User Activity -->
+  {% if user_activity %}
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+          <span class="fw-semibold"><i class="fas fa-users me-2 text-info"></i>Recent User Activity (last 30 days)</span>
+          {% if user_role != 'customer' %}
+          <a href="{% url 'office365:download_all_users' %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-download me-1"></i>All Users Export
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>User</th>
+                  <th class="text-center">Exchange</th>
+                  <th class="text-center">Teams</th>
+                  <th class="text-center">SharePoint</th>
+                  <th>Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in user_activity %}
+                <tr>
+                  <td>
+                    <div class="small fw-semibold">{{ u.display_name|default:u.upn }}</div>
+                    <div class="text-muted" style="font-size:.7rem;">{{ u.upn }}</div>
+                  </td>
+                  <td class="text-center">
+                    {% if u.exchange_active %}<i class="fas fa-check-circle text-success"></i>
+                    {% else %}<i class="fas fa-times-circle text-muted"></i>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if u.teams_active %}<i class="fas fa-check-circle text-success"></i>
+                    {% else %}<i class="fas fa-times-circle text-muted"></i>{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if u.sharepoint_active %}<i class="fas fa-check-circle text-success"></i>
+                    {% else %}<i class="fas fa-times-circle text-muted"></i>{% endif %}
+                  </td>
+                  <td><small class="text-muted">{{ u.last_activity|default:"No activity" }}</small></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}{# end if not is_demo #}
+
+  <!-- Admin / Technician Quick Links -->
+  {% if user_role != 'customer' %}
+  <div class="card shadow-sm mt-4">
+    <div class="card-header py-2">
+      <h6 class="mb-0 fw-semibold"><i class="fas fa-tools me-2 text-primary"></i>Admin &amp; Technician Tools</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:user_management' %}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fas fa-users-cog fa-2x mb-2"></i>
+            <span class="small fw-semibold">User Management</span>
+            <span class="text-muted" style="font-size:.7rem;">Enable / disable / reset</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:inactive_users' %}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fas fa-user-clock fa-2x mb-2"></i>
+            <span class="small fw-semibold">Inactive Users</span>
+            <span class="text-muted" style="font-size:.7rem;">License waste report</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:mfa_status' %}" class="btn btn-outline-danger w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fas fa-shield-alt fa-2x mb-2"></i>
+            <span class="small fw-semibold">MFA Status</span>
+            <span class="text-muted" style="font-size:.7rem;">Security audit</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:guest_users' %}" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fas fa-user-friends fa-2x mb-2"></i>
+            <span class="small fw-semibold">Guest Users</span>
+            <span class="text-muted" style="font-size:.7rem;">External accounts</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:onedrive_usage' %}" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fas fa-cloud fa-2x mb-2"></i>
+            <span class="small fw-semibold">OneDrive Storage</span>
+            <span class="text-muted" style="font-size:.7rem;">Per-user usage</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="{% url 'office365:teams_analytics' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <i class="fab fa-microsoft fa-2x mb-2"></i>
+            <span class="small fw-semibold">Teams Analytics</span>
+            <span class="text-muted" style="font-size:.7rem;">Messages &amp; meetings</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

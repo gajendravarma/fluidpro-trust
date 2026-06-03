@@ -1,0 +1,164 @@
+/*
+ * global-scale.css
+ * Loaded after Bootstrap in base.html.
+ * Keeps the UI compact and consistent across all screen sizes / DPI settings.
+ * Uses rem units anchored to html { font-size: 14px } set in base.html.
+ */
+
+/* ── Typography ─────────────────────────────────────────── */
+h1, .h1 { font-size: 1.5rem;  }
+h2, .h2 { font-size: 1.3rem;  }
+h3, .h3 { font-size: 1.1rem;  }
+h4, .h4 { font-size: 1rem;    }
+h5, .h5 { font-size: 0.95rem; }
+h6, .h6 { font-size: 0.875rem;}
+
+p, li, td, th, label, .form-label,
+.form-control, .form-select,
+.dropdown-item, .nav-link {
+    font-size: 0.875rem;
+}
+
+small, .small, .text-sm, .text-xs {
+    font-size: 0.78rem !important;
+}
+
+.fs-1 { font-size: 1.6rem  !important; }
+.fs-2 { font-size: 1.4rem  !important; }
+.fs-3 { font-size: 1.2rem  !important; }
+.fs-4 { font-size: 1rem    !important; }
+.fs-5 { font-size: 0.9rem  !important; }
+.fs-6 { font-size: 0.825rem!important; }
+
+/* ── FontAwesome icon sizes ─────────────────────────────── */
+.fa-2x  { font-size: 1.4em !important; }
+.fa-3x  { font-size: 2em   !important; }
+.fa-4x  { font-size: 2.5em !important; }
+.fa-5x  { font-size: 3em   !important; }
+.fa-lg  { font-size: 1.1em !important; }
+.fa-xl  { font-size: 1.25em!important; }
+.fa-2xl { font-size: 1.5em !important; }
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+    font-size: 0.82rem !important;
+    padding: 0.38rem 0.9rem !important;
+    border-radius: 7px !important;
+}
+.btn-sm {
+    font-size: 0.76rem !important;
+    padding: 0.25rem 0.6rem !important;
+}
+.btn-lg {
+    font-size: 0.95rem !important;
+    padding: 0.5rem 1.2rem !important;
+}
+
+/* ── Cards ──────────────────────────────────────────────── */
+.card-body       { padding: 1rem !important; }
+.card-header     { padding: 0.6rem 1rem !important; font-size: 0.875rem; }
+.card-footer     { padding: 0.6rem 1rem !important; }
+.card-title      { font-size: 0.95rem; margin-bottom: 0.4rem; }
+.card-subtitle   { font-size: 0.82rem; }
+
+/* ── Tables ─────────────────────────────────────────────── */
+.table th {
+    font-size: 0.78rem !important;
+    padding: 0.5rem 0.75rem !important;
+}
+.table td {
+    font-size: 0.84rem !important;
+    padding: 0.45rem 0.75rem !important;
+}
+.table-sm th,
+.table-sm td {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.78rem !important;
+}
+
+/* ── Forms ──────────────────────────────────────────────── */
+.form-control,
+.form-select {
+    font-size: 0.875rem !important;
+    padding: 0.38rem 0.7rem !important;
+}
+.form-control-sm,
+.form-select-sm {
+    font-size: 0.78rem !important;
+    padding: 0.25rem 0.6rem !important;
+}
+.form-label      { font-size: 0.82rem; margin-bottom: 0.3rem; }
+.input-group-text{ font-size: 0.82rem !important; padding: 0.38rem 0.7rem !important; }
+
+/* ── Navbar ─────────────────────────────────────────────── */
+.navbar          { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+.navbar-brand    { font-size: 1rem    !important; }
+.navbar-brand img{ height: 30px      !important; }
+.nav-link        { font-size: 0.82rem !important; padding: 0.35rem 0.7rem !important; }
+
+/* ── Badges ─────────────────────────────────────────────── */
+.badge           { font-size: 0.72rem !important; padding: 0.3em 0.55em !important; }
+
+/* ── Modals ─────────────────────────────────────────────── */
+.modal-title     { font-size: 0.95rem; }
+.modal-body      { font-size: 0.875rem; padding: 1rem; }
+.modal-header,
+.modal-footer    { padding: 0.6rem 1rem; }
+
+/* ── Alerts ─────────────────────────────────────────────── */
+.alert           { padding: 0.6rem 1rem !important; font-size: 0.875rem; }
+
+/* ── Pagination ─────────────────────────────────────────── */
+.page-link       { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
+
+/* ── Breadcrumb ─────────────────────────────────────────── */
+.breadcrumb      { font-size: 0.78rem; margin-bottom: 0.25rem; }
+.breadcrumb-item { font-size: 0.78rem; }
+
+/* ── List groups ────────────────────────────────────────── */
+.list-group-item { font-size: 0.875rem; padding: 0.5rem 0.9rem; }
+
+/* ── Stat/dashboard number headings ─────────────────────── */
+.h5.mb-0, .h4.mb-0 { font-size: 1.1rem !important; }
+
+/* ── Progress bars ──────────────────────────────────────── */
+.progress        { height: 8px !important; border-radius: 4px; }
+
+/* ── Tabs ───────────────────────────────────────────────── */
+.nav-tabs .nav-link  { font-size: 0.82rem; padding: 0.4rem 0.85rem; }
+.nav-pills .nav-link { font-size: 0.82rem; padding: 0.4rem 0.85rem; }
+
+/* ── Dropdown ───────────────────────────────────────────── */
+.dropdown-item   { font-size: 0.82rem !important; padding: 0.35rem 0.9rem !important; }
+.dropdown-menu   { font-size: 0.82rem; }
+
+/* ── Container padding ──────────────────────────────────── */
+.container-fluid.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+/* ── Spacing utility overrides for compactness ──────────── */
+.mb-4 { margin-bottom: 1rem !important; }
+.mb-3 { margin-bottom: 0.75rem !important; }
+.mt-4 { margin-top:    1rem !important; }
+.mt-3 { margin-top:    0.75rem !important; }
+.py-4 { padding-top:   1rem !important; padding-bottom: 1rem !important; }
+.py-3 { padding-top:   0.6rem !important; padding-bottom: 0.6rem !important; }
+.p-4  { padding:       1rem !important; }
+
+/* ── Responsive breakpoints ─────────────────────────────── */
+@media (max-width: 1366px) {
+    html { font-size: 13.5px; }
+}
+@media (max-width: 1280px) {
+    html { font-size: 13px; }
+}
+@media (max-width: 1024px) {
+    html { font-size: 12.5px; }
+    .container-fluid.px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+}
+@media (max-width: 768px) {
+    html { font-size: 12px; }
+    .card-body { padding: 0.75rem !important; }
+    .btn { padding: 0.3rem 0.7rem !important; font-size: 0.76rem !important; }
+    .table th, .table td { padding: 0.35rem 0.5rem !important; font-size: 0.76rem !important; }
+    .navbar-brand img { height: 26px !important; }
+}

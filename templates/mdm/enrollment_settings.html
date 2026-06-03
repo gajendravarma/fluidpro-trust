@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Enrollment Settings - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Enrollment Settings</h1>
+        <p class="text-gray-600">{{ customer.name }} ({{ customer.customer_id }})</p>
+    </div>
+    <a href="{% url 'mdm:customer_detail' customer.id %}" 
+       class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Customer
+    </a>
+</div>
+
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-mobile-alt mr-2 text-green-600"></i>Device Enrollment Configuration
+        </h2>
+    </div>
+    <div class="p-6">
+        <form method="post">
+            {% csrf_token %}
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label class="text-sm font-medium text-gray-900">Allow Personal Apps</label>
+                        <p class="text-sm text-gray-500">Allow users to install personal applications on managed devices</p>
+                    </div>
+                    <input type="checkbox" name="allow_personal_apps" 
+                           {% if settings.allow_personal_apps %}checked{% endif %}
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label class="text-sm font-medium text-gray-900">Require Passcode</label>
+                        <p class="text-sm text-gray-500">Require devices to have a passcode/PIN set</p>
+                    </div>
+                    <input type="checkbox" name="require_passcode" 
+                           {% if settings.require_passcode %}checked{% endif %}
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label class="text-sm font-medium text-gray-900">Auto Enrollment</label>
+                        <p class="text-sm text-gray-500">Automatically enroll devices when they connect</p>
+                    </div>
+                    <input type="checkbox" name="auto_enrollment" 
+                           {% if settings.auto_enrollment %}checked{% endif %}
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                </div>
+                
+                {% if settings.enrollment_url %}
+                <div>
+                    <label class="text-sm font-medium text-gray-900">Enrollment URL</label>
+                    <div class="mt-1 p-3 bg-gray-50 rounded-lg">
+                        <code class="text-sm text-gray-800">{{ settings.enrollment_url }}</code>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mt-8 flex justify-end">
+                <button type="submit" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

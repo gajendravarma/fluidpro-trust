@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ page_title }}</h2>
+                    <p class="text-muted">{{ company_name }} - Last 30 Days</p>
+                </div>
+                <div>
+                    <a href="{% url 'rbac:company_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>{{ page_title }} ({{ total_count }} tickets)</h5>
+                </div>
+                <div class="card-body">
+                    {% if tickets %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Requester</th>
+                                    <th>Technician</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets %}
+                                <tr>
+                                    <td>{{ ticket.ticket_id }}</td>
+                                    <td>{{ ticket.subject|truncatechars:50 }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if ticket.status == 'Open' %}bg-danger
+                                            {% elif ticket.status == 'Closed' %}bg-success
+                                            {% elif ticket.status == 'Resolved' %}bg-success
+                                            {% elif 'Progress' in ticket.status %}bg-warning
+                                            {% elif ticket.status == 'Pending' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ ticket.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if ticket.priority == 'High' %}bg-danger
+                                            {% elif ticket.priority == 'Medium' %}bg-warning
+                                            {% elif ticket.priority == 'Low' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.requester_name|default:"-" }}</td>
+                                    <td>{{ ticket.technician_name|default:"-" }}</td>
+                                    <td>{{ ticket.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if total_count > 100 %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Showing first 100 tickets out of {{ total_count }} total tickets.
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5>No tickets found</h5>
+                        <p class="text-muted">No {{ status_filter|lower }} tickets found for {{ company_name }} in the last 30 days.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

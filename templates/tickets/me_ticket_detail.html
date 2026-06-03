@@ -1,0 +1,966 @@
+{% extends 'base.html' %}
+{% block title %}Ticket #{{ me_ticket_id }} – IT Support Portal{% endblock %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+<div class="container-fluid px-4">
+
+  <!-- ── Page header ─────────────────────────────────────────── -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h4 mb-0">
+        <i class="fas fa-ticket-alt text-primary"></i>
+        Ticket #{{ me_ticket_id }}
+      </h1>
+      <p class="text-muted mb-0 small">{{ ticket.subject }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      {% if ticket.status != 'Closed' and ticket.status != 'Cancelled' %}
+        <!-- Pickup button (self-assign) -->
+        {% if current_user_me_id %}
+        <button class="btn btn-sm btn-outline-info" onclick="pickupTicket()">
+          <i class="fas fa-hand-pointer"></i> Pick Up
+        </button>
+        {% endif %}
+        <!-- Assign -->
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignModal">
+          <i class="fas fa-user-tag"></i> Assign
+        </button>
+        <!-- Close -->
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#closeModal">
+          <i class="fas fa-times-circle"></i> Close Ticket
+        </button>
+      {% endif %}
+      <!-- Attachment -->
+      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#attachModal">
+        <i class="fas fa-paperclip"></i> Attach File
+      </button>
+      <a href="{% url 'dashboard' %}" class="btn btn-sm btn-secondary">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Alert area ──────────────────────────────────────────── -->
+  <div id="page-alert" class="d-none"></div>
+
+  <div class="row g-3">
+
+    <!-- ── Left: Tabs ─────────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+      <ul class="nav nav-tabs" id="ticketTabs">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details">
+            <i class="fas fa-info-circle"></i> Details
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notes">
+            <i class="fas fa-comment-dots"></i> Notes
+            <span class="badge bg-secondary ms-1">{{ notes|length }}</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-worklogs">
+            <i class="fas fa-clock"></i> Worklogs
+            <span class="badge bg-secondary ms-1">{{ worklogs|length }}</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">
+            <i class="fas fa-tasks"></i> Tasks
+            <span class="badge bg-secondary ms-1">{{ tasks|length }}</span>
+          </button>
+        </li>
+        {% if user_role == 'admin' or user_role == 'technician' %}
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-approvals">
+            <i class="fas fa-check-double"></i> Approvals
+            <span class="badge bg-secondary ms-1">{{ approvals|length }}</span>
+          </button>
+        </li>
+        {% endif %}
+      </ul>
+
+      <div class="tab-content border border-top-0 rounded-bottom p-3 bg-white shadow-sm">
+
+        <!-- ─ Details Tab ─ -->
+        <div class="tab-pane fade show active" id="tab-details">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <small class="text-muted">Subject</small>
+              <p class="mb-1 fw-semibold">{{ ticket.subject }}</p>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Status</small>
+              <p class="mb-1">
+                <span class="badge bg-{% if ticket.status == 'Open' %}info{% elif ticket.status == 'Closed' %}success{% elif ticket.status == 'Resolved' %}success{% elif ticket.status == 'Cancelled' %}danger{% else %}warning{% endif %}">
+                  {{ ticket.status }}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Priority</small>
+              <p class="mb-1">
+                <span class="badge bg-{% if ticket.priority == 'Urgent' or ticket.priority == 'High' %}danger{% elif ticket.priority == 'Medium' or ticket.priority == 'Normal' %}warning{% else %}secondary{% endif %}">
+                  {{ ticket.priority }}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Requester</small>
+              <p class="mb-1">{{ ticket.requester_name|default:"—" }}</p>
+              {% if ticket.requester_email %}<p class="mb-1 small text-muted">{{ ticket.requester_email }}</p>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Assigned Technician</small>
+              <p class="mb-1">{{ ticket.technician_name|default:"Unassigned" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Company</small>
+              <p class="mb-1">{{ ticket.company|default:"—" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Category</small>
+              <p class="mb-1">{{ ticket.category|default:"—" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Created</small>
+              <p class="mb-1">{{ ticket.created_at|default:"—" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Last Updated</small>
+              <p class="mb-1">{{ ticket.updated_at|default:"—" }}</p>
+            </div>
+            {% if ticket.resolved_at %}
+            <div class="col-md-4">
+              <small class="text-muted">Resolved At</small>
+              <p class="mb-1">{{ ticket.resolved_at }}</p>
+            </div>
+            {% endif %}
+            <div class="col-12">
+              <small class="text-muted">Description</small>
+              <div class="card bg-light mt-1">
+                <div class="card-body py-2">
+                  {% if ticket.description %}
+                    <div class="ticket-description">{{ ticket.description|safe }}</div>
+                  {% else %}
+                    <p class="text-muted mb-0">No description provided.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─ Notes Tab ─ -->
+        <div class="tab-pane fade" id="tab-notes">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-comment-dots text-primary"></i> Conversation / Notes</h6>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+              <i class="fas fa-plus"></i> Add Note
+            </button>
+          </div>
+
+          {% if notes %}
+            {% for note in notes %}
+            <div class="card mb-2 note-card" id="note-card-{{ note.id }}">
+              <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <p class="mb-1 small">{{ note.description|linebreaks }}</p>
+                    <div class="d-flex gap-3 mt-1">
+                      <small class="text-muted"><i class="fas fa-user"></i> {{ note.created_by|default:"System" }}</small>
+                      <small class="text-muted"><i class="fas fa-clock"></i> {{ note.created_at }}</small>
+                      <span class="badge {% if note.is_public %}bg-success{% else %}bg-secondary{% endif %} small">
+                        {% if note.is_public %}Public{% else %}Private{% endif %}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-1 ms-2">
+                    <button class="btn btn-xs btn-outline-secondary py-0 px-1"
+                      onclick="openEditNote('{{ note.id }}', `{{ note.description|escapejs }}`, {{ note.is_public|yesno:'true,false' }})">
+                      <i class="fas fa-pen fa-xs"></i>
+                    </button>
+                    <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                      onclick="deleteNote('{{ note.id }}')">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-comment-slash fa-2x mb-2"></i>
+              <p>No notes yet. Add the first note.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ─ Worklogs Tab ─ -->
+        <div class="tab-pane fade" id="tab-worklogs">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-clock text-primary"></i> Time Worklogs</h6>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addWorklogModal">
+              <i class="fas fa-plus"></i> Log Time
+            </button>
+          </div>
+
+          {% if worklogs %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Technician</th>
+                  <th>Description</th>
+                  <th>Time Spent</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for wl in worklogs %}
+                <tr id="wl-row-{{ wl.id }}">
+                  <td><small>{{ wl.technician|default:"—" }}</small></td>
+                  <td><small>{{ wl.description }}</small></td>
+                  <td>
+                    <span class="badge bg-info">
+                      {% if wl.hours %}{{ wl.hours }}h {% endif %}
+                      {% if wl.minutes %}{{ wl.minutes }}m{% endif %}
+                    </span>
+                  </td>
+                  <td><small>{{ wl.executed_at|default:"—" }}</small></td>
+                  <td>
+                    <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                      onclick="deleteWorklog('{{ wl.id }}')">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-stopwatch fa-2x mb-2"></i>
+              <p>No worklogs yet. Log your time spent on this ticket.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ─ Tasks Tab ─ -->
+        <div class="tab-pane fade" id="tab-tasks">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-tasks text-primary"></i> Ticket Tasks</h6>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+              <i class="fas fa-plus"></i> Add Task
+            </button>
+          </div>
+
+          {% if tasks %}
+            {% for task in tasks %}
+            <div class="card mb-2 task-card" id="task-card-{{ task.id }}">
+              <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge {% if task.status == 'Completed' %}bg-success{% elif task.status == 'Open' %}bg-info{% else %}bg-warning{% endif %}">
+                        {{ task.status|default:"Open" }}
+                      </span>
+                      <strong class="small {% if task.status == 'Completed' %}text-decoration-line-through text-muted{% endif %}">
+                        {{ task.title }}
+                      </strong>
+                    </div>
+                    {% if task.description %}
+                      <p class="mb-0 small text-muted mt-1">{{ task.description }}</p>
+                    {% endif %}
+                    {% if task.owner %}
+                      <small class="text-muted"><i class="fas fa-user"></i> {{ task.owner }}</small>
+                    {% endif %}
+                  </div>
+                  <div class="d-flex gap-1 ms-2">
+                    {% if task.status != 'Completed' %}
+                    <button class="btn btn-xs btn-outline-success py-0 px-1"
+                      onclick="completeTask('{{ task.id }}')" title="Mark Complete">
+                      <i class="fas fa-check fa-xs"></i>
+                    </button>
+                    {% else %}
+                    <button class="btn btn-xs btn-outline-secondary py-0 px-1"
+                      onclick="reopenTask('{{ task.id }}')" title="Reopen">
+                      <i class="fas fa-redo fa-xs"></i>
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                      onclick="deleteTask('{{ task.id }}')">
+                      <i class="fas fa-trash fa-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+              <p>No tasks yet. Break down the work into sub-tasks.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ─ Approvals Tab ─ -->
+        {% if user_role == 'admin' or user_role == 'technician' %}
+        <div class="tab-pane fade" id="tab-approvals">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="fas fa-check-double text-primary"></i> Approvals</h6>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#sendApprovalModal">
+              <i class="fas fa-paper-plane"></i> Request Approval
+            </button>
+          </div>
+
+          {% if approvals %}
+            {% for ap in approvals %}
+            <div class="card mb-2">
+              <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge {% if ap.status == 'Approved' %}bg-success{% elif ap.status == 'Rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                        {{ ap.status|default:"Pending" }}
+                      </span>
+                      <strong class="small">{{ ap.approver|default:"—" }}</strong>
+                    </div>
+                    {% if ap.comments %}
+                      <p class="mb-0 small text-muted mt-1">{{ ap.comments }}</p>
+                    {% endif %}
+                    <small class="text-muted">{{ ap.created_at }}</small>
+                  </div>
+                  {% if ap.status == 'Pending' or ap.status == '' %}
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-success"
+                      onclick="approveReject('{{ ap.id }}', 'Approved')">
+                      <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                      onclick="approveReject('{{ ap.id }}', 'Rejected')">
+                      <i class="fas fa-times"></i> Reject
+                    </button>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-clipboard-check fa-2x mb-2"></i>
+              <p>No approval requests yet.</p>
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div><!-- end tab-content -->
+    </div><!-- end col-lg-8 -->
+
+    <!-- ── Right: Info sidebar ─────────────────────────────────── -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 bg-primary text-white">
+          <h6 class="mb-0"><i class="fas fa-info-circle"></i> Ticket Info</h6>
+        </div>
+        <div class="card-body py-2">
+          <table class="table table-sm table-borderless mb-0">
+            <tr><th class="text-muted small py-1" width="40%">ME ID</th><td class="small py-1">#{{ me_ticket_id }}</td></tr>
+            <tr><th class="text-muted small py-1">Status</th>
+              <td class="py-1">
+                <span class="badge bg-{% if ticket.status == 'Open' %}info{% elif ticket.status == 'Closed' or ticket.status == 'Resolved' %}success{% elif ticket.status == 'Cancelled' %}danger{% else %}warning{% endif %}">
+                  {{ ticket.status }}
+                </span>
+              </td>
+            </tr>
+            <tr><th class="text-muted small py-1">Priority</th>
+              <td class="py-1">
+                <span class="badge bg-{% if ticket.priority == 'Urgent' or ticket.priority == 'High' %}danger{% elif ticket.priority == 'Medium' or ticket.priority == 'Normal' %}warning{% else %}secondary{% endif %}">
+                  {{ ticket.priority }}
+                </span>
+              </td>
+            </tr>
+            <tr><th class="text-muted small py-1">Category</th><td class="small py-1">{{ ticket.category|default:"—" }}</td></tr>
+            <tr><th class="text-muted small py-1">Company</th><td class="small py-1">{{ ticket.company|default:"—" }}</td></tr>
+            <tr><th class="text-muted small py-1">Requester</th><td class="small py-1">{{ ticket.requester_name|default:"—" }}</td></tr>
+            <tr><th class="text-muted small py-1">Technician</th><td class="small py-1 {% if not ticket.technician_name %}text-danger{% endif %}">{{ ticket.technician_name|default:"Unassigned" }}</td></tr>
+            <tr><th class="text-muted small py-1">Created</th><td class="small py-1">{{ ticket.created_at|default:"—" }}</td></tr>
+            <tr><th class="text-muted small py-1">Updated</th><td class="small py-1">{{ ticket.updated_at|default:"—" }}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2">
+          <h6 class="mb-0"><i class="fas fa-chart-bar text-primary"></i> Summary</h6>
+        </div>
+        <div class="card-body py-2">
+          <div class="row g-2 text-center">
+            <div class="col-4">
+              <div class="border rounded py-2">
+                <div class="h5 mb-0 text-primary">{{ notes|length }}</div>
+                <small class="text-muted">Notes</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="border rounded py-2">
+                <div class="h5 mb-0 text-info">{{ worklogs|length }}</div>
+                <small class="text-muted">Worklogs</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="border rounded py-2">
+                <div class="h5 mb-0 text-warning">{{ tasks|length }}</div>
+                <small class="text-muted">Tasks</small>
+              </div>
+            </div>
+          </div>
+          {% if worklogs %}
+          <div class="mt-2 text-center">
+            <small class="text-muted">Total Time Logged: </small>
+            <span class="badge bg-info" id="total-time-badge">Calculating...</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick actions card -->
+      <div class="card shadow-sm">
+        <div class="card-header py-2">
+          <h6 class="mb-0"><i class="fas fa-bolt text-warning"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body py-2 d-grid gap-2">
+          {% if ticket.status != 'Closed' and ticket.status != 'Cancelled' %}
+            {% if current_user_me_id %}
+            <button class="btn btn-sm btn-outline-info" onclick="pickupTicket()">
+              <i class="fas fa-hand-pointer"></i> Pick Up (Self-Assign)
+            </button>
+            {% endif %}
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignModal">
+              <i class="fas fa-user-tag"></i> Assign Technician
+            </button>
+            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+              <i class="fas fa-comment-plus"></i> Add Note
+            </button>
+            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#addWorklogModal">
+              <i class="fas fa-clock"></i> Log Time
+            </button>
+            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+              <i class="fas fa-plus-square"></i> Add Task
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#attachModal">
+              <i class="fas fa-paperclip"></i> Attach File
+            </button>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#closeModal">
+              <i class="fas fa-times-circle"></i> Close Ticket
+            </button>
+          {% else %}
+            <p class="text-muted text-center small mb-0">
+              <i class="fas fa-lock"></i> Ticket is {{ ticket.status }}. No actions available.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div><!-- end col-lg-4 -->
+
+  </div><!-- end row -->
+</div><!-- end container -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  MODALS                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<!-- Add Note -->
+<div class="modal fade" id="addNoteModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-comment-plus text-primary"></i> Add Note</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Note <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="note-description" rows="4" placeholder="Enter your note here..."></textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="note-is-public">
+          <label class="form-check-label" for="note-is-public">
+            Public note (visible to requester)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitAddNote()">
+          <i class="fas fa-paper-plane"></i> Add Note
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Note -->
+<div class="modal fade" id="editNoteModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-pen text-warning"></i> Edit Note</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-note-id">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Note <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="edit-note-description" rows="4"></textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="edit-note-is-public">
+          <label class="form-check-label" for="edit-note-is-public">Public note</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="submitEditNote()">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Worklog -->
+<div class="modal fade" id="addWorklogModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-clock text-info"></i> Log Time</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="wl-description" rows="3" placeholder="What did you work on?"></textarea>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold">Hours</label>
+            <input type="number" class="form-control" id="wl-hours" min="0" max="999" value="0">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold">Minutes</label>
+            <input type="number" class="form-control" id="wl-minutes" min="0" max="59" value="0">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Technician (optional)</label>
+          <select class="form-select" id="wl-technician">
+            <option value="">— Select Technician —</option>
+            {% for tech in technicians %}
+            <option value="{{ tech.me_id }}">{{ tech.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info text-white" onclick="submitAddWorklog()">
+          <i class="fas fa-save"></i> Save Worklog
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Task -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-tasks text-warning"></i> Add Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Task Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="task-title" placeholder="e.g. Check server logs">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="task-description" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Assign To (optional)</label>
+          <select class="form-select" id="task-assigned">
+            <option value="">— Select Technician —</option>
+            {% for tech in technicians %}
+            <option value="{{ tech.me_id }}">{{ tech.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="submitAddTask()">
+          <i class="fas fa-plus"></i> Add Task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Technician -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-tag text-primary"></i> Assign Technician</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Current: <strong>{{ ticket.technician_name|default:"Unassigned" }}</strong></p>
+        <label class="form-label fw-semibold">Select Technician <span class="text-danger">*</span></label>
+        <select class="form-select" id="assign-technician">
+          <option value="">— Select Technician —</option>
+          {% for tech in technicians %}
+          <option value="{{ tech.me_id }}" {% if tech.me_id == ticket.technician_id %}selected{% endif %}>
+            {{ tech.name }}{% if tech.email %} ({{ tech.email }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitAssign()">
+          <i class="fas fa-user-check"></i> Assign
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Close Ticket -->
+<div class="modal fade" id="closeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-times-circle"></i> Close Ticket</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning mb-3">
+          <i class="fas fa-exclamation-triangle"></i> Closing this ticket will mark it as resolved in ManageEngine.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Closure Code</label>
+          <select class="form-select" id="closure-code">
+            {% for code in closure_codes %}
+            <option value="{{ code }}">{{ code }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Resolution Notes</label>
+          <textarea class="form-control" id="close-resolution" rows="4"
+            placeholder="Describe how the issue was resolved..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitClose()">
+          <i class="fas fa-check"></i> Close Ticket
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attach File -->
+<div class="modal fade" id="attachModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-paperclip text-secondary"></i> Add Attachment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold">Choose File <span class="text-danger">*</span></label>
+        <input type="file" class="form-control" id="attach-file">
+        <small class="text-muted">Max 10 MB</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="submitAttachment()">
+          <i class="fas fa-upload"></i> Upload
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Send for Approval -->
+<div class="modal fade" id="sendApprovalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-paper-plane text-primary"></i> Request Approval</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold">Select Approver <span class="text-danger">*</span></label>
+        <select class="form-select" id="approval-approver">
+          <option value="">— Select Approver —</option>
+          {% for tech in technicians %}
+          <option value="{{ tech.me_id }}">{{ tech.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitSendApproval()">
+          <i class="fas fa-paper-plane"></i> Send for Approval
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script>
+const ME_ID = '{{ me_ticket_id }}';
+const CSRF = '{{ csrf_token }}';
+
+function showAlert(type, msg) {
+  const el = document.getElementById('page-alert');
+  el.className = `alert alert-${type} alert-dismissible fade show`;
+  el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${msg}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  el.classList.remove('d-none');
+  el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  if (type === 'success') setTimeout(() => location.reload(), 1500);
+}
+
+function post(url, formData) {
+  formData.append('csrfmiddlewaretoken', CSRF);
+  return fetch(url, {method: 'POST', body: formData, credentials: 'same-origin',
+                     headers: {'X-Requested-With': 'XMLHttpRequest'}})
+    .then(r => {
+      if (!r.ok && r.status === 302) {
+        return {success: false, message: 'Session expired — please refresh the page and log in again.'};
+      }
+      return r.text().then(text => {
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Non-JSON response from', url, ':', text.slice(0, 300));
+          return {success: false, message: 'Server error — check the browser console or Django logs for details.'};
+        }
+      });
+    });
+}
+
+// ── Notes ─────────────────────────────────────────────────────── //
+function submitAddNote() {
+  const desc = document.getElementById('note-description').value.trim();
+  if (!desc) { alert('Note description is required.'); return; }
+  const fd = new FormData();
+  fd.append('description', desc);
+  fd.append('is_public', document.getElementById('note-is-public').checked);
+  post(`/tickets/me/${ME_ID}/notes/add/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function openEditNote(id, desc, isPublic) {
+  document.getElementById('edit-note-id').value = id;
+  document.getElementById('edit-note-description').value = desc;
+  document.getElementById('edit-note-is-public').checked = isPublic;
+  new bootstrap.Modal(document.getElementById('editNoteModal')).show();
+}
+
+function submitEditNote() {
+  const id = document.getElementById('edit-note-id').value;
+  const desc = document.getElementById('edit-note-description').value.trim();
+  if (!desc) { alert('Note description is required.'); return; }
+  const fd = new FormData();
+  fd.append('description', desc);
+  fd.append('is_public', document.getElementById('edit-note-is-public').checked);
+  post(`/tickets/me/${ME_ID}/notes/${id}/edit/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('editNoteModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function deleteNote(id) {
+  if (!confirm('Delete this note?')) return;
+  const fd = new FormData();
+  post(`/tickets/me/${ME_ID}/notes/${id}/delete/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Worklogs ──────────────────────────────────────────────────── //
+function submitAddWorklog() {
+  const desc = document.getElementById('wl-description').value.trim();
+  const hours = document.getElementById('wl-hours').value;
+  const minutes = document.getElementById('wl-minutes').value;
+  if (!desc) { alert('Description is required.'); return; }
+  if (parseInt(hours) === 0 && parseInt(minutes) === 0) { alert('Time spent must be > 0.'); return; }
+  const fd = new FormData();
+  fd.append('description', desc);
+  fd.append('hours', hours);
+  fd.append('minutes', minutes);
+  fd.append('technician_id', document.getElementById('wl-technician').value);
+  post(`/tickets/me/${ME_ID}/worklogs/add/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('addWorklogModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function deleteWorklog(id) {
+  if (!confirm('Delete this worklog entry?')) return;
+  const fd = new FormData();
+  post(`/tickets/me/${ME_ID}/worklogs/${id}/delete/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Tasks ─────────────────────────────────────────────────────── //
+function submitAddTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) { alert('Task title is required.'); return; }
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('description', document.getElementById('task-description').value.trim());
+  fd.append('assigned_to_id', document.getElementById('task-assigned').value);
+  post(`/tickets/me/${ME_ID}/tasks/add/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('addTaskModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function completeTask(id) {
+  const fd = new FormData();
+  fd.append('action', 'complete');
+  post(`/tickets/me/${ME_ID}/tasks/${id}/update/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function reopenTask(id) {
+  const fd = new FormData();
+  fd.append('action', 'reopen');
+  post(`/tickets/me/${ME_ID}/tasks/${id}/update/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  const fd = new FormData();
+  post(`/tickets/me/${ME_ID}/tasks/${id}/delete/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Assign / Pickup / Close ───────────────────────────────────── //
+function submitAssign() {
+  const id = document.getElementById('assign-technician').value;
+  if (!id) { alert('Please select a technician.'); return; }
+  const fd = new FormData();
+  fd.append('technician_id', id);
+  post(`/tickets/me/${ME_ID}/assign/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function pickupTicket() {
+  if (!confirm('Pick up this ticket and assign it to yourself?')) return;
+  const fd = new FormData();
+  post(`/tickets/me/${ME_ID}/pickup/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function submitClose() {
+  const resolution = document.getElementById('close-resolution').value.trim();
+  const code = document.getElementById('closure-code').value;
+  const fd = new FormData();
+  fd.append('resolution', resolution);
+  fd.append('closure_code', code);
+  post(`/tickets/me/${ME_ID}/close/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('closeModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Attachment ────────────────────────────────────────────────── //
+function submitAttachment() {
+  const fileInput = document.getElementById('attach-file');
+  if (!fileInput.files.length) { alert('Please select a file.'); return; }
+  const fd = new FormData();
+  fd.append('attachment', fileInput.files[0]);
+  post(`/tickets/me/${ME_ID}/attachments/add/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('attachModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Approvals ─────────────────────────────────────────────────── //
+function submitSendApproval() {
+  const id = document.getElementById('approval-approver').value;
+  if (!id) { alert('Please select an approver.'); return; }
+  const fd = new FormData();
+  fd.append('approver_id', id);
+  post(`/tickets/me/${ME_ID}/approvals/send/`, fd).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('sendApprovalModal')).hide();
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+function approveReject(approvalId, action) {
+  const comments = prompt(`${action} — add comments (optional):`);
+  if (comments === null) return; // user pressed cancel
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('comments', comments || '');
+  post(`/tickets/me/${ME_ID}/approvals/${approvalId}/action/`, fd).then(d => {
+    showAlert(d.success ? 'success' : 'danger', d.message);
+  });
+}
+
+// ── Total time calculation ────────────────────────────────────── //
+document.addEventListener('DOMContentLoaded', () => {
+  {% if worklogs %}
+  const worklogs = [{% for wl in worklogs %}{ hours: {{ wl.hours|default:0 }}, minutes: {{ wl.minutes|default:0 }} },{% endfor %}];
+  let totalMins = worklogs.reduce((sum, w) => sum + w.hours * 60 + w.minutes, 0);
+  const h = Math.floor(totalMins / 60), m = totalMins % 60;
+  const el = document.getElementById('total-time-badge');
+  if (el) el.textContent = `${h}h ${m}m`;
+  {% endif %}
+});
+</script>
+
+<style>
+.btn-xs { font-size: 0.7rem; padding: 0.1rem 0.35rem; }
+.nav-tabs .nav-link { font-size: 0.875rem; }
+.tab-content { min-height: 300px; }
+.note-card, .task-card { border-left: 3px solid #4e73df; }
+</style>
+{% endblock %}

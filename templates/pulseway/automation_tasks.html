@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+
+{% block title %}Automation Tasks - Pulseway{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0"><i class="fas fa-robot text-secondary me-2"></i>Automation Tasks</h1>
+      <p class="text-muted mb-0">{{ total_tasks }} task{{ total_tasks|pluralize }} from Pulseway</p>
+    </div>
+    <div class="d-flex gap-2">
+      {% if user_role in "admin technician" %}
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+        <i class="fas fa-plus me-1"></i>Create Task
+      </button>
+      {% endif %}
+      <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {% if api_error %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Could not load tasks from Pulseway API: <strong>{{ api_error }}</strong>
+  </div>
+  {% endif %}
+
+  <!-- Task cards -->
+  {% if tasks %}
+  <div class="row g-3 mb-4">
+    {% for task in tasks %}
+    <div class="col-xl-4 col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+          <span class="fw-semibold text-truncate" style="max-width:200px;" title="{{ task.Name }}">
+            <i class="fas fa-robot text-secondary me-1"></i>{{ task.Name|default:"Unnamed Task" }}
+          </span>
+          <div class="d-flex gap-1 align-items-center">
+            {% if task.IsBuiltIn %}
+            <span class="badge bg-info text-dark" title="Built-in task">Built-in</span>
+            {% endif %}
+            <span class="badge {% if task.ExecutionState == 'Running' %}bg-warning text-dark{% elif task.IsEnabled %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if task.ExecutionState == 'Running' %}Running
+              {% elif task.IsEnabled %}Active
+              {% else %}Inactive{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="card-body py-2">
+          <p class="text-muted small mb-2">{{ task.Description|default:"No description"|truncatechars:90 }}</p>
+          <div class="row g-1 text-muted small">
+            <div class="col-6"><i class="fas fa-code me-1"></i>Scripts: {{ task.TotalScripts|default:0 }}</div>
+            <div class="col-6"><i class="fas fa-folder me-1"></i>{{ task.FolderPath|default:"Root"|truncatechars:18 }}</div>
+            {% if task.ScopeName %}
+            <div class="col-12"><i class="fas fa-crosshairs me-1"></i>Scope: {{ task.ScopeName }}</div>
+            {% endif %}
+            {% if task.UpdatedAt %}
+            <div class="col-12"><i class="fas fa-clock me-1"></i>Updated: {{ task.UpdatedAt|slice:":10" }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-footer bg-transparent py-2 d-flex gap-1">
+          <button class="btn btn-sm btn-outline-success flex-fill"
+                  onclick="openRunModal('{{ task.Id }}', '{{ task.Name|escapejs }}')"
+                  title="Run this task">
+            <i class="fas fa-play me-1"></i>Run
+          </button>
+          {% if user_role in "admin technician" %}
+          <button class="btn btn-sm btn-outline-primary"
+                  onclick="openEditModal('{{ task.Id }}', '{{ task.Name|escapejs }}')"
+                  title="Edit">
+            <i class="fas fa-edit"></i>
+          </button>
+          {% if not task.IsBuiltIn %}
+          <button class="btn btn-sm btn-outline-danger"
+                  onclick="deleteTask('{{ task.Id }}', '{{ task.Name|escapejs }}')"
+                  title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if tasks.has_other_pages %}
+  <nav>
+    <ul class="pagination pagination-sm justify-content-center">
+      {% if tasks.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ tasks.previous_page_number }}"><i class="fas fa-angle-left"></i></a></li>
+      {% endif %}
+      {% for num in tasks.paginator.page_range %}
+        {% if tasks.number == num %}<li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}<li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if tasks.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ tasks.next_page_number }}"><i class="fas fa-angle-right"></i></a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+      <i class="fas fa-robot fa-4x text-muted mb-3 d-block"></i>
+      <h5 class="text-muted">No Automation Tasks</h5>
+      <p class="text-muted">No automation tasks found in Pulseway. Create tasks in the Pulseway web console or click "Create Task" above.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== CREATE TASK MODAL ===== -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-plus text-primary me-2"></i>Create Automation Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info small mb-3">
+          <i class="fas fa-info-circle me-1"></i>
+          The Pulseway REST API has limited support for task creation. If it fails, please create the task in the
+          <a href="https://my.pulseway.com" target="_blank" rel="noopener">Pulseway web console</a> and it will appear here automatically.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Task Name <span class="text-danger">*</span></label>
+          <input type="text" id="ct_name" class="form-control" placeholder="e.g. Daily Maintenance Script">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description</label>
+          <textarea id="ct_desc" class="form-control" rows="2" placeholder="Optional description"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Script Content <span class="text-danger">*</span></label>
+          <textarea id="ct_script" class="form-control font-monospace" rows="10"
+                    placeholder="# PowerShell example&#10;Get-Process | Select-Object Name,CPU | Sort-Object CPU -Descending | Select-Object -First 10"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmCreateTask">
+          <i class="fas fa-save me-1"></i>Create Task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RUN TASK MODAL ===== -->
+<div class="modal fade" id="runTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-play text-success me-2"></i>Run Task: <span id="runTaskName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info small">
+          <i class="fas fa-info-circle me-1"></i>
+          Leave devices unselected to run on the <strong>task's default scope</strong> (as configured in Pulseway).
+          Select specific devices to override the scope.
+        </div>
+        <!-- Device multi-select -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Target Devices (optional override)</label>
+          <div class="input-group mb-1">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" id="runDeviceSearch" class="form-control form-control-sm"
+                   placeholder="Filter devices…" oninput="filterRunDevices(this.value)">
+          </div>
+          <select id="runDeviceSelect" class="form-select" multiple size="7" style="min-height:160px;">
+            {% for d in devices %}
+            <option value="{{ d.device_id }}" data-name="{{ d.device_name }}" data-org="{{ d.organization_name }}">
+              {{ d.device_name }}{% if d.organization_name %} — {{ d.organization_name }}{% endif %}
+              {% if d.status == 'offline' %}[Offline]{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Hold Ctrl/Cmd to select multiple devices. Leave empty to use task's default scope.</div>
+        </div>
+        <div id="runSelectedDevices" class="small text-muted"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmRunTask">
+          <i class="fas fa-play me-1"></i>Run Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT TASK MODAL ===== -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-edit text-primary me-2"></i>Edit Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning small mb-3">
+          <i class="fas fa-info-circle me-1"></i>
+          The Pulseway API does not expose script content in the task list. You can update the name and description here.
+          To change the script itself, edit it in the <a href="https://my.pulseway.com" target="_blank">Pulseway web console</a>.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Task Name</label>
+          <input type="text" id="et_name" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description</label>
+          <textarea id="et_desc" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Script Content
+            <span class="text-muted fw-normal">(enter new script or leave blank to keep existing)</span>
+          </label>
+          <textarea id="et_script" class="form-control font-monospace" rows="8"
+                    placeholder="Enter updated script content, or leave blank to keep the existing script."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmEditTask">
+          <i class="fas fa-save me-1"></i>Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+let currentTaskId = null;
+
+/* ---- helpers ---- */
+function showAlert(type, msg) {
+  const d = document.createElement('div');
+  d.className = `alert alert-${type} alert-dismissible fade show`;
+  d.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.querySelector('.container-fluid').prepend(d);
+  setTimeout(() => d.remove && d.remove(), 6000);
+}
+
+function postJson(url, data) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).then(r => r.json());
+}
+
+function postForm(url, formData) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrf },
+    body: formData,
+  }).then(r => r.json());
+}
+
+/* ---- Create task ---- */
+document.getElementById('confirmCreateTask').addEventListener('click', function () {
+  const name = document.getElementById('ct_name').value.trim();
+  const script = document.getElementById('ct_script').value.trim();
+  if (!name || !script) { showAlert('warning', 'Name and script content are required.'); return; }
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('description', document.getElementById('ct_desc').value);
+  fd.append('script_content', script);
+
+  postForm('/pulseway/automation/create/', fd).then(data => {
+    bootstrap.Modal.getInstance(document.getElementById('createTaskModal')).hide();
+    if (data.success) {
+      showAlert('success', data.message);
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      showAlert('danger', 'Error: ' + data.message);
+    }
+  }).catch(err => showAlert('danger', 'Network error: ' + err));
+});
+
+/* ---- Run task ---- */
+const runAllOptions = Array.from(document.getElementById('runDeviceSelect').options);
+
+function filterRunDevices(term) {
+  const sel = document.getElementById('runDeviceSelect');
+  sel.innerHTML = '';
+  const matched = runAllOptions.filter(o => o.textContent.toLowerCase().includes(term.toLowerCase()));
+  matched.forEach(o => sel.appendChild(o));
+}
+
+document.getElementById('runDeviceSelect').addEventListener('change', function () {
+  const sel = Array.from(this.selectedOptions).map(o => o.dataset.name || o.value);
+  document.getElementById('runSelectedDevices').textContent =
+    sel.length ? `Selected: ${sel.join(', ')}` : '';
+});
+
+function openRunModal(taskId, taskName) {
+  currentTaskId = taskId;
+  document.getElementById('runTaskName').textContent = taskName;
+  document.getElementById('runDeviceSearch').value = '';
+  filterRunDevices('');
+  // deselect all
+  Array.from(document.getElementById('runDeviceSelect').options).forEach(o => o.selected = false);
+  document.getElementById('runSelectedDevices').textContent = '';
+  new bootstrap.Modal(document.getElementById('runTaskModal')).show();
+}
+
+document.getElementById('confirmRunTask').addEventListener('click', function () {
+  if (!currentTaskId) return;
+  const sel = document.getElementById('runDeviceSelect');
+  const deviceIds = Array.from(sel.selectedOptions).map(o => o.value);
+
+  // Build form data (array fields)
+  const fd = new FormData();
+  deviceIds.forEach(id => fd.append('device_ids', id));
+
+  postForm(`/pulseway/automation/run/${currentTaskId}/`, fd).then(data => {
+    bootstrap.Modal.getInstance(document.getElementById('runTaskModal')).hide();
+    showAlert(data.success ? 'success' : 'danger', data.message || (data.success ? 'Task started.' : 'Failed.'));
+  }).catch(err => showAlert('danger', 'Network error: ' + err));
+});
+
+/* ---- Edit task ---- */
+function openEditModal(taskId, taskName) {
+  currentTaskId = taskId;
+  document.getElementById('et_name').value = taskName;
+  document.getElementById('et_desc').value = '';
+  document.getElementById('et_script').value = '';
+
+  // Fetch existing details
+  fetch(`/pulseway/automation/edit/${taskId}/`, {
+    headers: { 'X-CSRFToken': csrf }
+  }).then(r => r.json()).then(data => {
+    if (data.success && data.task) {
+      document.getElementById('et_name').value = data.task.name || taskName;
+      document.getElementById('et_desc').value = data.task.description || '';
+      document.getElementById('et_script').value = data.task.script || '';
+    }
+  }).catch(() => {});
+
+  new bootstrap.Modal(document.getElementById('editTaskModal')).show();
+}
+
+document.getElementById('confirmEditTask').addEventListener('click', function () {
+  if (!currentTaskId) return;
+  const fd = new FormData();
+  fd.append('name', document.getElementById('et_name').value.trim());
+  fd.append('description', document.getElementById('et_desc').value);
+  fd.append('script_content', document.getElementById('et_script').value);
+
+  postForm(`/pulseway/automation/edit/${currentTaskId}/`, fd).then(data => {
+    bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
+    showAlert(data.success ? 'success' : 'danger', data.message);
+    if (data.success) setTimeout(() => location.reload(), 1500);
+  }).catch(err => showAlert('danger', 'Network error: ' + err));
+});
+
+/* ---- Delete task ---- */
+function deleteTask(taskId, taskName) {
+  if (!confirm(`Delete "${taskName}"?\n\nThis cannot be undone.`)) return;
+  const fd = new FormData();
+  postForm(`/pulseway/automation/delete/${taskId}/`, fd).then(data => {
+    showAlert(data.success ? 'success' : 'danger', data.message);
+    if (data.success) setTimeout(() => location.reload(), 1500);
+  }).catch(err => showAlert('danger', 'Network error: ' + err));
+}
+</script>
+{% endblock %}

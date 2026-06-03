@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}{{ cust_name }} — Monitors{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item"><a href="{% url 'site24x7:site24x7_dashboard' %}">Site24x7</a></li>
+          <li class="breadcrumb-item active">{{ cust_name }} — Monitors</li>
+        </ol>
+      </nav>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-desktop text-primary me-2"></i>{{ cust_name }} Monitors</h1>
+      <p class="text-muted mb-0 small">{{ monitors|length }} monitors total</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'site24x7:customer_report' zaaid %}" class="btn btn-outline-success btn-sm">
+        <i class="fas fa-chart-bar me-1"></i>Report
+      </a>
+      <a href="{% url 'site24x7:maintenance' zaaid %}" class="btn btn-outline-warning btn-sm">
+        <i class="fas fa-tools me-1"></i>Maintenance
+      </a>
+      <a href="{% url 'site24x7:profiles' zaaid %}" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-sliders-h me-1"></i>Profiles
+      </a>
+      {% if user_role == 'admin' %}
+      <a href="{% url 'site24x7:monitor_create' zaaid %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>Add Monitor
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}{% for m in messages %}
+  <div class="alert alert-{{ m.tags }} alert-dismissible fade show">{{ m }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  {% endfor %}{% endif %}
+
+  {% if error %}
+  <div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ error }}</div>
+  {% endif %}
+
+  <!-- Filter bar -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex gap-3 align-items-center flex-wrap">
+        <input type="text" id="search" class="form-control form-control-sm" style="max-width:260px;"
+               placeholder="Search monitors..." oninput="filterTable()">
+        <select id="typeFilter" class="form-select form-select-sm" style="width:auto;" onchange="filterTable()">
+          <option value="">All Types</option>
+          {% for type_key, type_label in type_labels.items %}
+          <option value="{{ type_key }}">{{ type_label }}</option>
+          {% endfor %}
+        </select>
+        <select id="statusFilter" class="form-select form-select-sm" style="width:auto;" onchange="filterTable()">
+          <option value="">All Status</option>
+          <option value="1">Up</option>
+          <option value="0">Down</option>
+          <option value="5">Suspended</option>
+          <option value="-1">No Data</option>
+        </select>
+        <span class="text-muted small ms-auto" id="rowCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0" id="monitorTable">
+          <thead class="table-light">
+            <tr>
+              <th>Monitor Name</th>
+              <th>Type</th>
+              <th class="text-center">Status</th>
+              <th>URL / Host</th>
+              <th>Frequency</th>
+              <th>State</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in monitors %}
+            <tr data-type="{{ m.type }}" data-status="{{ m.live_status }}"
+                data-name="{{ m.display_name|lower }}">
+              <td>
+                <a href="{% url 'site24x7:monitor_detail' zaaid m.monitor_id %}" class="fw-semibold text-decoration-none">
+                  {{ m.display_name|default:"Unknown" }}
+                </a>
+              </td>
+              <td><span class="badge bg-light text-dark border small">{{ m.type_label }}</span></td>
+              <td class="text-center">
+                {% if m.live_status == 1 %}<span class="badge bg-success">Up</span>
+                {% elif m.live_status == 0 %}<span class="badge bg-danger">Down</span>
+                {% elif m.live_status == 2 %}<span class="badge bg-warning text-dark">Trouble</span>
+                {% elif m.live_status == 5 %}<span class="badge bg-secondary">Suspended</span>
+                {% elif m.live_status == 7 %}<span class="badge bg-info text-dark">Maintenance</span>
+                {% else %}<span class="badge bg-light text-muted border">No data</span>{% endif %}
+              </td>
+              <td class="small text-muted">{{ m.host_display }}</td>
+              <td class="small text-muted">
+                {% if m.check_frequency %}{{ m.check_frequency }} min{% else %}—{% endif %}
+              </td>
+              <td class="small">
+                {% if m.state == 0 %}<span class="text-success"><i class="fas fa-circle" style="font-size:.55rem;"></i> Active</span>
+                {% elif m.state == 5 %}<span class="text-secondary"><i class="fas fa-circle" style="font-size:.55rem;"></i> Suspended</span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td class="text-center">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'site24x7:monitor_detail' zaaid m.monitor_id %}"
+                     class="btn btn-outline-primary btn-sm" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if user_role == 'admin' %}
+                  <a href="{% url 'site24x7:monitor_edit' zaaid m.monitor_id %}"
+                     class="btn btn-outline-secondary btn-sm" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-outline-danger btn-sm"
+                          onclick="confirmDelete('{{ m.monitor_id }}','{{ m.display_name }}')"
+                          title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-4">No monitors found</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h6 class="modal-title"><i class="fas fa-trash me-2"></i>Delete Monitor</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">Delete <strong id="deleteMonitorName"></strong>?</p>
+        <p class="text-danger small mb-0"><i class="fas fa-exclamation-triangle me-1"></i>This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmDelete(monitorId, name) {
+  document.getElementById('deleteMonitorName').textContent = name;
+  document.getElementById('deleteForm').action = `/site24x7/customer/{{ zaaid }}/monitors/${monitorId}/delete/`;
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function filterTable() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const typeF  = document.getElementById('typeFilter').value;
+  const statusF = document.getElementById('statusFilter').value;
+  const rows = document.querySelectorAll('#monitorTable tbody tr[data-name]');
+  let visible = 0;
+  rows.forEach(row => {
+    const nameMatch   = !search  || row.dataset.name.includes(search);
+    const typeMatch   = !typeF   || row.dataset.type === typeF;
+    const statusMatch = !statusF || row.dataset.status === statusF;
+    const show = nameMatch && typeMatch && statusMatch;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('rowCount').textContent = `${visible} of ${rows.length} monitors`;
+}
+filterTable();
+</script>
+{% endblock %}

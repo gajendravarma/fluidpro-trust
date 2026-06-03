@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Install Patches - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="fas fa-download text-danger me-2"></i>Install Patches on Device</h3>
+        <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Device selector -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Target Device <span class="text-danger">*</span></label>
+              <div class="input-group mb-1">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="deviceSearch" class="form-control"
+                       placeholder="Search by device name or organisation…" autocomplete="off">
+              </div>
+              <select name="device_id" id="deviceSelect" class="form-select" required size="6"
+                      style="min-height:160px;" onchange="onDevicePick(this)">
+                {% for d in devices %}
+                <option value="{{ d.device_id }}"
+                        data-name="{{ d.device_name }}"
+                        data-org="{{ d.organization_name }}"
+                        data-status="{{ d.status }}"
+                        data-patches="{{ d.pending_patches }}"
+                        {% if d.device_id == preselect_id %}selected{% endif %}>
+                  {{ d.device_name }}{% if d.organization_name %} — {{ d.organization_name }}{% endif %}
+                  ({{ d.pending_patches }} pending)
+                </option>
+                {% empty %}
+                <option disabled>No devices available</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="device_name" id="deviceNameHidden">
+              <div id="deviceHint" class="form-text">Select a device to install patches on.</div>
+            </div>
+
+            <!-- Patch IDs (optional) -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Patch IDs
+                <span class="text-muted fw-normal">(optional — leave blank to install ALL pending patches)</span>
+              </label>
+              <textarea name="patch_ids" class="form-control font-monospace" rows="5"
+                        placeholder="Leave blank to install all pending patches.&#10;Or enter specific patch IDs, one per line:&#10;KB5001716&#10;KB5001234"></textarea>
+              <div class="form-text">One patch ID per line. Leave blank to queue all pending patches.</div>
+            </div>
+
+            <!-- Reboot -->
+            <div class="mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="reboot_required" id="rebootRequired">
+                <label class="form-check-label" for="rebootRequired">
+                  <i class="fas fa-redo me-1 text-warning"></i>Reboot device after installation
+                </label>
+              </div>
+              <div class="form-text text-warning">
+                <i class="fas fa-exclamation-triangle me-1"></i>Enabling reboot will restart the device immediately after patches install.
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-download me-1"></i>Queue Patch Installation
+              </button>
+              <a href="{% url 'pulseway:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const allOptions = Array.from(document.getElementById('deviceSelect').options);
+
+document.getElementById('deviceSearch').addEventListener('input', function () {
+  const term = this.value.toLowerCase();
+  const sel = document.getElementById('deviceSelect');
+  sel.innerHTML = '';
+  const matched = allOptions.filter(o =>
+    o.textContent.toLowerCase().includes(term) || (o.dataset.org || '').toLowerCase().includes(term)
+  );
+  if (matched.length === 0) {
+    const opt = document.createElement('option');
+    opt.disabled = true;
+    opt.textContent = 'No matching devices';
+    sel.appendChild(opt);
+  } else {
+    matched.forEach(o => sel.appendChild(o));
+  }
+});
+
+function onDevicePick(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('deviceNameHidden').value = opt.dataset.name || opt.value;
+  const patches = parseInt(opt.dataset.patches || '0');
+  const status = opt.dataset.status || '';
+  const hint = document.getElementById('deviceHint');
+  let msg = '';
+  if (status === 'offline') {
+    msg += '<span class="text-warning me-2"><i class="fas fa-exclamation-triangle me-1"></i>Device offline — patches queued.</span>';
+  } else {
+    msg += '<span class="text-success me-2"><i class="fas fa-check-circle me-1"></i>Device online.</span>';
+  }
+  msg += patches > 0
+    ? `<span class="text-danger"><i class="fas fa-shield-alt me-1"></i><strong>${patches}</strong> pending patch(es).</span>`
+    : '<span class="text-success"><i class="fas fa-check me-1"></i>No pending patches.</span>';
+  hint.innerHTML = msg;
+}
+
+const sel = document.getElementById('deviceSelect');
+if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) onDevicePick(sel);
+</script>
+{% endblock %}

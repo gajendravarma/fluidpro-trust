@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Actions History - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h3 mb-0"><i class="fas fa-history text-primary me-2"></i>Actions History</h2>
+      <p class="text-muted mb-0">{{ total_actions }} total action{{ total_actions|pluralize }}</p>
+    </div>
+    <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+    </a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if actions %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Description</th>
+              <th class="text-center">Status</th>
+              <th>Date</th>
+              <th class="text-center">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for action in actions %}
+            <tr>
+              <td class="fw-semibold small">{{ action.get_action_type_display }}</td>
+              <td class="small">{{ action.target_name }}</td>
+              <td class="small text-muted">{{ action.description|truncatechars:60 }}</td>
+              <td class="text-center">
+                <span class="badge
+                  {% if action.status == 'completed' %}bg-success
+                  {% elif action.status == 'failed' %}bg-danger
+                  {% elif action.status == 'running' %}bg-warning text-dark
+                  {% else %}bg-secondary{% endif %}">
+                  {{ action.status|title }}
+                </span>
+              </td>
+              <td class="small text-muted">{{ action.created_at|date:"d M Y H:i" }}</td>
+              <td class="text-center">
+                {% if action.result %}
+                <button class="btn btn-sm btn-outline-info py-0"
+                        data-bs-toggle="modal" data-bs-target="#detailsModal"
+                        onclick="showDetails({{ action.id }}, '{{ action.target_name|escapejs }}', {{ action.result|default:'{}' }})">
+                  <i class="fas fa-eye"></i>
+                </button>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if actions.has_other_pages %}
+      <div class="px-3 py-2 border-top">
+        <nav>
+          <ul class="pagination pagination-sm justify-content-center mb-0">
+            {% if actions.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ actions.previous_page_number }}">
+                <i class="fas fa-angle-left"></i>
+              </a>
+            </li>
+            {% endif %}
+            {% for num in actions.paginator.page_range %}
+              {% if actions.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+              {% elif num > actions.number|add:'-3' and num < actions.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% if actions.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ actions.next_page_number }}">
+                <i class="fas fa-angle-right"></i>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        <div class="text-center text-muted small mt-1">
+          Page {{ actions.number }} of {{ actions.paginator.num_pages }}
+        </div>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-history fa-3x text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">No actions yet</h5>
+        <p class="text-muted">Actions you perform (scripts, reboots, patches, etc.) will appear here.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-info-circle text-primary me-2"></i>Action Details — <span id="detailsTargetName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="actionDetails" class="bg-light p-3 rounded small" style="max-height:400px;overflow:auto;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDetails(actionId, targetName, resultData) {
+  document.getElementById('detailsTargetName').textContent = targetName;
+  try {
+    document.getElementById('actionDetails').textContent = JSON.stringify(resultData, null, 2);
+  } catch (e) {
+    document.getElementById('actionDetails').textContent = String(resultData);
+  }
+}
+</script>
+{% endblock %}

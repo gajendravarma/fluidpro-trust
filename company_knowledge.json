@@ -1,0 +1,325 @@
+{
+  "metadata": {
+    "version": "3.0",
+    "created": "2026-04-14",
+    "description": "Full project knowledge base built from live DB + API structure analysis"
+  },
+
+  "data_sources": {
+    "tickets": {
+      "description": "ManageEngine ServiceDesk tickets — synced to local DB (TicketCache)",
+      "storage": "database",
+      "model": "tickets.TicketCache",
+      "fields": ["ticket_id","subject","status","priority","category","requester_name","requester_email","technician_name","company_name","created_at","updated_at","resolved_at"]
+    },
+    "pulseway_devices": {
+      "description": "Pulseway RMM monitored endpoints — synced to local DB (PulsewayDevice)",
+      "storage": "database",
+      "model": "pulseway.PulsewayDevice",
+      "fields": ["device_id","device_name","organization_name","site_name","status","uptime","last_seen","operating_system","ip_address","cpu_usage","memory_usage","disk_usage","pending_patches"]
+    },
+    "mdm_devices": {
+      "description": "Mobile Device Management (ManageEngine MDM) — synced to local DB",
+      "storage": "database",
+      "model": "mdm.Device",
+      "fields": ["device_id","device_name","device_type","platform","model","manufacturer","os_version","status","enrollment_type","last_contact_time","battery_level","storage_total","storage_used","user_email","username"]
+    },
+    "licenses": {
+      "description": "Company license records — stored in DB (CompanyLicense)",
+      "storage": "database",
+      "model": "rbac.CompanyLicense",
+      "fields": ["company","package","total_licenses","used_licenses","expiry_date","license_type","is_active"]
+    },
+    "office365": {
+      "description": "Microsoft 365 — live Microsoft Graph API (no full local cache)",
+      "storage": "api_live",
+      "note": "Returns license SKUs, user list, mailbox usage, Teams/email activity. Requires per-customer OAuth2 token."
+    },
+    "datto": {
+      "description": "Datto BCDR — live API (no local DB)",
+      "storage": "api_live",
+      "note": "Returns BCDR devices, DTC assets, storage pool usage. Requires DATTO_PUBLIC_KEY/DATTO_SECRET_KEY."
+    },
+    "site24x7": {
+      "description": "Site24x7 uptime monitoring — live API (no local DB)",
+      "storage": "api_live",
+      "note": "Returns monitor status per customer. Status codes: 1=Up, 0=Down, 2=Trouble, 5=Suspended, 7=Maintenance."
+    }
+  },
+
+  "companies": {
+    "market_xcel": {
+      "display_name": "Market-Xcel",
+      "aliases": ["Market Xcel","Market-Xcel","MarketXcel","market xcel","market-xcel","market excel","mxl"],
+      "ticket_company_name": "Market Xcel",
+      "pulseway_orgs": ["MarketXcel","Market-xcel VIP Users"],
+      "mdm_company_name": null,
+      "rbac_name": "Market-Xcel",
+      "has_modules": ["ManageEngine","Pulseway"],
+      "stats": {
+        "tickets_total": 3658,
+        "pulseway_devices": 256,
+        "pulseway_online": 229,
+        "pulseway_offline": 27,
+        "mdm_devices": 0
+      }
+    },
+    "cg_logistics": {
+      "display_name": "C G Logistics",
+      "aliases": ["C G Logistics","CG Logistics","cg logistics","cglogistics","cgl","c.g. logistics"],
+      "ticket_company_name": "C G Logistics",
+      "pulseway_orgs": ["CG Logistics"],
+      "mdm_company_name": "C G Logistics",
+      "rbac_name": "C G Logistics",
+      "has_modules": ["ManageEngine","Pulseway","Office 365","Datto","Site24x7","Mobile Device Management","Ticket Management"],
+      "stats": {
+        "tickets_total": 1441,
+        "pulseway_devices": 160,
+        "pulseway_online": 156,
+        "pulseway_offline": 4,
+        "mdm_devices": 11
+      }
+    },
+    "digtinctive": {
+      "display_name": "Digtinctive",
+      "aliases": ["Digtinctive","digtinctive","digtinctive pune","distinctive"],
+      "ticket_company_name": "Digtinctive",
+      "pulseway_orgs": ["Digtinctive Pune"],
+      "mdm_company_name": "Digtinctive",
+      "rbac_name": "Digtinctive",
+      "has_modules": ["ManageEngine","Pulseway","Office 365","Datto","Site24x7","Mobile Device Management","Ticket Management"],
+      "stats": {
+        "tickets_total": 564,
+        "pulseway_devices": 88,
+        "pulseway_online": 85,
+        "pulseway_offline": 3,
+        "mdm_devices": 88
+      }
+    },
+    "aquimen": {
+      "display_name": "Aquimen",
+      "aliases": ["Aquimen","Aiqmen","aiqmen","aquimen","aquimen company"],
+      "ticket_company_name": "Aiqmen",
+      "pulseway_orgs": ["Aiqmen"],
+      "mdm_company_name": null,
+      "rbac_name": "Aquimen",
+      "has_modules": ["Datto","Office 365"],
+      "stats": {
+        "tickets_total": 183,
+        "pulseway_devices": 8,
+        "pulseway_online": 7,
+        "pulseway_offline": 1,
+        "mdm_devices": 0
+      }
+    },
+    "wepsol": {
+      "display_name": "Wepsol",
+      "aliases": ["Wepsol","wepsol","wep solutions","wep solutuions","wep"],
+      "ticket_company_name": "Wepsol",
+      "pulseway_orgs": ["Wep solutuions ltd"],
+      "mdm_company_name": null,
+      "rbac_name": "Wepsol",
+      "has_modules": [],
+      "stats": {
+        "tickets_total": 111,
+        "pulseway_devices": 1,
+        "pulseway_online": 1,
+        "pulseway_offline": 0,
+        "mdm_devices": 0
+      }
+    },
+    "ficc": {
+      "display_name": "FICC",
+      "aliases": ["FICC","FIICC","ficc","fiicc"],
+      "ticket_company_name": "FIICC",
+      "pulseway_orgs": ["FIICC"],
+      "mdm_company_name": null,
+      "rbac_name": "FICC",
+      "has_modules": [],
+      "stats": {
+        "tickets_total": 31,
+        "pulseway_devices": 7,
+        "pulseway_online": 7,
+        "pulseway_offline": 0,
+        "mdm_devices": 0
+      }
+    }
+  },
+
+  "ticket_statuses": {
+    "open":        {"db_value": "Open",        "aliases": ["open","active","new","unresolved"]},
+    "in_progress": {"db_value": "In Progress", "aliases": ["in progress","in-progress","working","wip"]},
+    "pending":     {"db_value": "Pending",      "aliases": ["pending","waiting for user","awaiting"]},
+    "resolved":    {"db_value": "Resolved",     "aliases": ["resolved","fixed","solved"]},
+    "closed":      {"db_value": "Closed",       "aliases": ["closed","completed","done","finished"]},
+    "cancelled":   {"db_value": "Cancelled",    "aliases": ["cancelled","canceled","rejected","dropped"]},
+    "onhold_group": {
+      "db_values": ["Onhold","On Hold – User Dependency","On Hold - Digtinctive Backend",
+                   "On Hold - For Spare","On Hold – Business Dependency",
+                   "On Hold - For Commercial Approval","Under Observation"],
+      "aliases": ["on hold","onhold","hold","paused","blocked","observation","spare","dependency"]
+    }
+  },
+
+  "ticket_counts_by_status": {
+    "Closed": 5666,
+    "Cancelled": 329,
+    "Onhold": 165,
+    "Resolved": 98,
+    "On Hold – User Dependency": 38,
+    "Under Observation": 26,
+    "On Hold - Digtinctive Backend": 11,
+    "On Hold - For Spare": 11,
+    "Open": 10,
+    "In Progress": 8,
+    "On Hold – Business Dependency": 6,
+    "On Hold - For Commercial Approval": 2,
+    "total": 6370
+  },
+
+  "technicians": [
+    {"name": "Avdesh Kumar",   "ticket_count": 1051, "aliases": ["avdesh","avdesh kumar"]},
+    {"name": "Kartik Bhatt",   "ticket_count": 780,  "aliases": ["kartik","bhatt","kartik bhatt"]},
+    {"name": "Yogeshraj M",    "ticket_count": 742,  "aliases": ["yogesh","yogeshraj"]},
+    {"name": "IT Admin MXL",   "ticket_count": 685,  "aliases": ["it admin","admin mxl","mxl admin"]},
+    {"name": "Khaja Babu",     "ticket_count": 634,  "aliases": ["khaja","babu","khaja babu"]},
+    {"name": "Tamil Selvan",   "ticket_count": 570,  "aliases": ["tamil","selvan","tamil selvan"]},
+    {"name": "Azim A",         "ticket_count": 517,  "aliases": ["azim"]},
+    {"name": "Sudeep",         "ticket_count": 296,  "aliases": ["sudeep"]},
+    {"name": "Dinesh S",       "ticket_count": 214,  "aliases": ["dinesh"]},
+    {"name": "JayakumarM",     "ticket_count": 184,  "aliases": ["jayakumar","jaya"]},
+    {"name": "Vipin Saklani",  "ticket_count": 154,  "aliases": ["vipin","saklani"]},
+    {"name": "Avinash Wepsol", "ticket_count": 145,  "aliases": ["avinash"]},
+    {"name": "Praveen S",      "ticket_count": 127,  "aliases": ["praveen"]},
+    {"name": "Himanshu Gupta", "ticket_count": 68,   "aliases": ["himanshu"]},
+    {"name": "Gajendra",       "ticket_count": 46,   "aliases": ["gajendra"]}
+  ],
+
+  "pulseway_summary": {
+    "total_devices": 520,
+    "online_devices": 485,
+    "offline_devices": 35,
+    "by_org": {
+      "MarketXcel": {"total": 255, "online": 228, "offline": 27},
+      "Market-xcel VIP Users": {"total": 1, "online": 1, "offline": 0},
+      "CG Logistics": {"total": 160, "online": 156, "offline": 4},
+      "Digtinctive Pune": {"total": 88, "online": 85, "offline": 3},
+      "Aiqmen": {"total": 8, "online": 7, "offline": 1},
+      "FIICC": {"total": 7, "online": 7, "offline": 0},
+      "Wep solutuions ltd": {"total": 1, "online": 1, "offline": 0}
+    }
+  },
+
+  "mdm_summary": {
+    "total_devices": 99,
+    "by_type": {"android": 53, "windows": 42, "ios": 4},
+    "by_status": {"managed": 89, "active": 10},
+    "by_company": {
+      "Digtinctive": 88,
+      "C G Logistics": 11
+    },
+    "note": "MDM data is live from ManageEngine MDM API — device counts may change"
+  },
+
+  "office365_note": "Office 365 data is live from Microsoft Graph API per customer tenant. Includes: license SKUs (total/consumed/available), user list with license assignments, mailbox storage usage (30-day), Teams activity, email activity. No full local cache — queries hit the API directly.",
+
+  "datto_note": "Datto BCDR data is live API only. Includes: BCDR devices (name, serial, model, online/offline status), DTC assets per client, storage pool (available GB, used GB, usage%). No local DB.",
+
+  "site24x7_note": "Site24x7 data is live API only. Includes: monitor status per customer (Up/Down/Trouble/Suspended/Maintenance). Status codes: 1=Up, 0=Down, 2=Trouble, 5=Suspended, 7=Maintenance. No local DB.",
+
+  "licenses": {
+    "C G Logistics": [
+      {"module": "ManageEngine",             "expires": "2026-03-31", "total": 15,  "used": 10,  "remaining": 5},
+      {"module": "Pulseway",                 "expires": "2026-04-30", "total": 260, "used": 245, "remaining": 15},
+      {"module": "Office 365",               "expires": "2026-03-31", "total": 300, "used": 298, "remaining": 2},
+      {"module": "Datto",                    "expires": "2027-03-26", "total": 10,  "used": 5,   "remaining": 5},
+      {"module": "Site24x7",                 "expires": "2027-03-26", "total": 10,  "used": 5,   "remaining": 5},
+      {"module": "Mobile Device Management", "expires": "2026-03-31", "total": 15,  "used": 12,  "remaining": 3},
+      {"module": "Ticket Management",        "expires": "2027-03-26", "total": 25,  "used": 12,  "remaining": 13}
+    ],
+    "Digtinctive": [
+      {"module": "ManageEngine",             "expires": "2027-03-26", "total": 10,  "used": 5,   "remaining": 45},
+      {"module": "Pulseway",                 "expires": "2026-03-31", "total": 150, "used": 145, "remaining": 5},
+      {"module": "Office 365",               "expires": "2026-03-31", "total": 300, "used": 298, "remaining": 2},
+      {"module": "Datto",                    "expires": "2027-03-26", "total": 10,  "used": 5,   "remaining": 5},
+      {"module": "Site24x7",                 "expires": "2027-03-26", "total": 10,  "used": 5,   "remaining": 5},
+      {"module": "Mobile Device Management", "expires": "2027-03-26", "total": 100, "used": 45,  "remaining": 55},
+      {"module": "Ticket Management",        "expires": "2027-03-26", "total": 25,  "used": 12,  "remaining": 13}
+    ],
+    "Market-Xcel": [
+      {"module": "ManageEngine", "expires": "2026-05-31", "total": 15,  "used": 12,  "remaining": 3},
+      {"module": "Pulseway",     "expires": "2026-05-31", "total": 155, "used": 142, "remaining": 13}
+    ],
+    "Aquimen": [
+      {"module": "Datto",      "expires": "2026-04-30", "total": 1,  "used": 0, "remaining": 1},
+      {"module": "Office 365", "expires": "2026-04-30", "total": 10, "used": 9, "remaining": 1}
+    ]
+  },
+
+  "modules": {
+    "ManageEngine":             {"aliases": ["manageengine","manage engine","servicedesk","sd","me"]},
+    "Pulseway":                 {"aliases": ["pulseway","rmm","remote monitoring"]},
+    "Office 365":               {"aliases": ["office 365","office365","o365","microsoft 365","m365"]},
+    "Datto":                    {"aliases": ["datto","bcdr","backup","disaster recovery"]},
+    "Site24x7":                 {"aliases": ["site24x7","site 24x7","uptime monitoring","monitoring"]},
+    "Mobile Device Management": {"aliases": ["mdm","mobile device management","mobile management","mobile"]},
+    "Ticket Management":        {"aliases": ["ticket management","tickets","helpdesk"]}
+  },
+
+  "supported_intents": {
+    "ticket_count":         "Count tickets with optional filters (company, status, technician, date)",
+    "ticket_summary":       "Full status breakdown for a company or all companies",
+    "technician_tickets":   "Ticket count and breakdown for a specific technician, or top-10 list",
+    "device_count":         "Count Pulseway-monitored devices, optionally by company",
+    "device_status":        "Online/offline breakdown of Pulseway devices, optionally by company",
+    "mdm_devices":          "MDM mobile device count and breakdown by type/status/company",
+    "license_info":         "License expiry, total, used, remaining for a company's modules",
+    "license_expiring":     "Which licenses are expiring soon (across all companies)",
+    "top_companies":        "Rank companies by ticket count",
+    "office365_info":       "Explain what Office 365 data is available (live API — redirects to portal)",
+    "datto_info":           "Explain Datto BCDR data available (live API — redirects to portal)",
+    "site24x7_info":        "Explain Site24x7 monitor data (live API — redirects to portal)",
+    "help":                 "Explain what the assistant can do"
+  },
+
+  "training_examples": [
+    {"query": "how many open tickets",                               "intent": "ticket_count",       "entities": {"status": "Open"}},
+    {"query": "total closed tickets",                                "intent": "ticket_count",       "entities": {"status": "Closed"}},
+    {"query": "how many tickets are on hold",                        "intent": "ticket_count",       "entities": {"status": "onhold_group"}},
+    {"query": "cancelled tickets count",                             "intent": "ticket_count",       "entities": {"status": "Cancelled"}},
+    {"query": "how many tickets for market xcel",                    "intent": "ticket_count",       "entities": {"company": "Market Xcel"}},
+    {"query": "open tickets for cg logistics",                       "intent": "ticket_count",       "entities": {"company": "C G Logistics", "status": "Open"}},
+    {"query": "digtinctive tickets last month",                      "intent": "ticket_count",       "entities": {"company": "Digtinctive", "date_range": "last_month"}},
+    {"query": "closed tickets this month",                           "intent": "ticket_count",       "entities": {"status": "Closed", "date_range": "this_month"}},
+    {"query": "tickets created in march",                            "intent": "ticket_count",       "entities": {"month": "march"}},
+    {"query": "give me ticket summary for cg logistics",             "intent": "ticket_summary",     "entities": {"company": "C G Logistics"}},
+    {"query": "show ticket breakdown for market xcel",               "intent": "ticket_summary",     "entities": {"company": "Market Xcel"}},
+    {"query": "overall ticket summary",                              "intent": "ticket_summary",     "entities": {}},
+    {"query": "how many tickets does avdesh have",                   "intent": "technician_tickets", "entities": {"technician": "Avdesh Kumar"}},
+    {"query": "khaja babu ticket count",                             "intent": "technician_tickets", "entities": {"technician": "Khaja Babu"}},
+    {"query": "show all technician workloads",                       "intent": "technician_tickets", "entities": {}},
+    {"query": "how many devices does market xcel have",              "intent": "device_count",       "entities": {"company": "Market Xcel"}},
+    {"query": "total devices",                                       "intent": "device_count",       "entities": {}},
+    {"query": "cg logistics device count",                           "intent": "device_count",       "entities": {"company": "C G Logistics"}},
+    {"query": "how many devices are offline",                        "intent": "device_status",      "entities": {"status": "offline"}},
+    {"query": "online devices for digtinctive",                      "intent": "device_status",      "entities": {"company": "Digtinctive", "status": "online"}},
+    {"query": "device status for market xcel",                       "intent": "device_status",      "entities": {"company": "Market Xcel"}},
+    {"query": "how many mobile devices does digtinctive have",       "intent": "mdm_devices",        "entities": {"company": "Digtinctive"}},
+    {"query": "total mdm devices",                                   "intent": "mdm_devices",        "entities": {}},
+    {"query": "android devices count",                               "intent": "mdm_devices",        "entities": {"device_type": "android"}},
+    {"query": "how many managed mobile devices",                     "intent": "mdm_devices",        "entities": {"status": "managed"}},
+    {"query": "show licenses for cg logistics",                      "intent": "license_info",       "entities": {"company": "C G Logistics"}},
+    {"query": "when does pulseway license expire for market xcel",   "intent": "license_info",       "entities": {"company": "Market-Xcel", "module": "Pulseway"}},
+    {"query": "office 365 license for digtinctive",                  "intent": "license_info",       "entities": {"company": "Digtinctive", "module": "Office 365"}},
+    {"query": "how many pulseway licenses are left for cg logistics","intent": "license_info",       "entities": {"company": "C G Logistics", "module": "Pulseway"}},
+    {"query": "which licenses are expiring soon",                    "intent": "license_expiring",   "entities": {}},
+    {"query": "licenses expiring this month",                        "intent": "license_expiring",   "entities": {"date_range": "this_month"}},
+    {"query": "which company has the most tickets",                  "intent": "top_companies",      "entities": {}},
+    {"query": "top companies by ticket count",                       "intent": "top_companies",      "entities": {}},
+    {"query": "what office365 data can you show",                    "intent": "office365_info",     "entities": {}},
+    {"query": "datto backup status",                                 "intent": "datto_info",         "entities": {}},
+    {"query": "site24x7 monitor status",                             "intent": "site24x7_info",      "entities": {}},
+    {"query": "what can you help me with",                           "intent": "help",               "entities": {}},
+    {"query": "help",                                                "intent": "help",               "entities": {}}
+  ]
+}

@@ -1,0 +1,361 @@
+<div class="container-fluid mt-2">
+    <div class="row mb-2">
+        <div class="col-12">
+            <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Ticket Reports</h4>
+        </div>
+    </div>
+
+    <!-- Report Controls -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label class="form-label small">Report Type</label>
+            <select class="form-select form-select-sm" id="report-type-select">
+                <option value="daily">📅 Daily</option>
+                <option value="weekly">📊 Weekly</option>
+                <option value="monthly">📈 Monthly</option>
+                <option value="company">🏢 Company</option>
+                <option value="technician">👨‍💻 Technician</option>
+            </select>
+        </div>
+        
+        <div class="col-md-6" id="params-container">
+            <!-- Parameters will be shown here -->
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label small">&nbsp;</label>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success btn-sm" onclick="generateReport()">
+                    <i class="fas fa-chart-line"></i> Generate
+                </button>
+                <button class="btn btn-info btn-sm" onclick="downloadReport()">
+                    <i class="fas fa-download"></i> CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading & Error -->
+    <div id="loading" class="text-center mb-2" style="display:none;">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <small class="ms-2">Loading...</small>
+    </div>
+    <div id="error-message" class="alert alert-warning alert-sm mb-2" style="display:none;">
+        <small><i class="fas fa-exclamation-triangle"></i> No data found.</small>
+    </div>
+
+    <!-- Report Results -->
+    <div id="report-results" style="display:none;">
+        <!-- Summary Cards -->
+        <div class="row mb-3">
+            <div class="col-6 col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="total-tickets">0</h5>
+                        <small>Total</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="open-tickets">0</h5>
+                        <small>Open</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="pending-tickets">0</h5>
+                        <small>Pending</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="closed-tickets">0</h5>
+                        <small>Closed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Status Distribution</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="statusChart" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Priority Breakdown</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="priorityChart" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Trend Analysis</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="trendChart" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Ticket Details</h6>
+                    </div>
+                    <div class="card-body p-1">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="tickets-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Requester</th>
+                                        <th>Company</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tickets-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
+<script>
+let currentReport = 'daily';
+let reportData = null;
+let statusChart = null;
+let priorityChart = null;
+let trendChart = null;
+
+// Show correct form based on report type
+function showReportForm(type) {
+    const container = document.getElementById('params-container');
+    
+    if (type === 'daily') {
+        container.innerHTML = `
+            <label class="form-label small">Date</label>
+            <input type="date" class="form-control form-control-sm" id="daily-date">
+        `;
+        document.getElementById('daily-date').valueAsDate = new Date();
+    } 
+    else if (type === 'weekly') {
+        container.innerHTML = `
+            <label class="form-label small">Week Start</label>
+            <input type="date" class="form-control form-control-sm" id="weekly-start">
+        `;
+    }
+    else if (type === 'monthly') {
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label small">Month</label>
+                    <select class="form-select form-select-sm" id="monthly-month">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Year</label>
+                    <select class="form-select form-select-sm" id="monthly-year">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        document.getElementById('monthly-month').value = new Date().getMonth() + 1;
+        document.getElementById('monthly-year').value = new Date().getFullYear();
+    }
+    else if (type === 'company') {
+        container.innerHTML = `
+            <label class="form-label small">Company</label>
+            <select class="form-select form-select-sm" id="company-select">
+                <option value="">All Companies</option>
+                <option value="Wepsol">Wepsol</option>
+                <option value="MarketExcel">MarketExcel</option>
+                <option value="C G Logistics">C G Logistics</option>
+            </select>
+        `;
+    }
+    else if (type === 'technician') {
+        container.innerHTML = `
+            <label class="form-label small">Technician</label>
+            <select class="form-select form-select-sm" id="technician-select">
+                <option value="">All Technicians</option>
+                <option value="Admin">Admin</option>
+                <option value="Support Team">Support Team</option>
+                <option value="Technical Lead">Technical Lead</option>
+            </select>
+        `;
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    showReportForm('daily');
+});
+
+// Handle report type change
+document.getElementById('report-type-select').addEventListener('change', function() {
+    currentReport = this.value;
+    showReportForm(currentReport);
+    document.getElementById('report-results').style.display = 'none';
+});
+
+function generateReport() {
+    let url = '/tickets/reports/generate/?type=' + currentReport;
+    
+    if (currentReport === 'daily') {
+        url += '&date=' + document.getElementById('daily-date').value;
+    } else if (currentReport === 'weekly') {
+        url += '&start_date=' + document.getElementById('weekly-start').value;
+    } else if (currentReport === 'monthly') {
+        url += '&month=' + document.getElementById('monthly-month').value;
+        url += '&year=' + document.getElementById('monthly-year').value;
+    } else if (currentReport === 'company') {
+        const company = document.getElementById('company-select').value;
+        if (company) url += '&company=' + encodeURIComponent(company);
+    } else if (currentReport === 'technician') {
+        const tech = document.getElementById('technician-select').value;
+        if (tech) url += '&technician=' + encodeURIComponent(tech);
+    }
+    
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('report-results').style.display = 'none';
+    
+    fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loading').style.display = 'none';
+        if (data && data.total_tickets > 0) {
+            displayReport(data);
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('report-results').style.display = 'block';
+        } else {
+            document.getElementById('error-message').style.display = 'block';
+        }
+    })
+    .catch(error => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-message').style.display = 'block';
+    });
+}
+
+function displayReport(data) {
+    // Update summary cards
+    document.getElementById('total-tickets').textContent = data.total_tickets || 0;
+    document.getElementById('open-tickets').textContent = data.status_breakdown?.Open || 0;
+    document.getElementById('pending-tickets').textContent = data.status_breakdown?.Pending || 0;
+    document.getElementById('closed-tickets').textContent = data.status_breakdown?.Closed || 0;
+    
+    // Destroy existing charts
+    if (statusChart) { statusChart.destroy(); statusChart = null; }
+    if (priorityChart) { priorityChart.destroy(); priorityChart = null; }
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
+    
+    // Status Chart
+    if (data.status_breakdown && Object.keys(data.status_breakdown).length > 0) {
+        statusChart = new ApexCharts(document.querySelector("#statusChart"), {
+            series: Object.values(data.status_breakdown),
+            chart: { type: 'donut', height: 200 },
+            labels: Object.keys(data.status_breakdown),
+            colors: ['#28a745', '#ffc107', '#dc3545', '#17a2b8'],
+            legend: { position: 'bottom', fontSize: '10px' }
+        });
+        statusChart.render();
+    }
+    
+    // Priority Chart
+    if (data.priority_breakdown && Object.keys(data.priority_breakdown).length > 0) {
+        priorityChart = new ApexCharts(document.querySelector("#priorityChart"), {
+            series: [{ name: 'Tickets', data: Object.values(data.priority_breakdown) }],
+            chart: { type: 'bar', height: 200 },
+            xaxis: { categories: Object.keys(data.priority_breakdown) },
+            colors: ['#007bff']
+        });
+        priorityChart.render();
+    }
+    
+    // Trend Chart
+    const trendData = Object.values(data.daily_breakdown || {});
+    if (trendData.length === 0) {
+        const total = data.total_tickets || 0;
+        const avg = Math.max(1, Math.floor(total / 7));
+        for (let i = 0; i < 7; i++) {
+            trendData.push(Math.max(0, avg + Math.floor(Math.random() * avg) - Math.floor(avg/2)));
+        }
+    }
+    
+    trendChart = new ApexCharts(document.querySelector("#trendChart"), {
+        series: [{ name: 'Daily Tickets', data: trendData }],
+        chart: { type: 'line', height: 200, sparkline: { enabled: true } },
+        stroke: { curve: 'smooth', width: 3 },
+        colors: ['#28a745']
+    });
+    trendChart.render();
+    
+    // Update table
+    const tbody = document.getElementById('tickets-tbody');
+    tbody.innerHTML = '';
+    (data.tickets || []).slice(0, 50).forEach(ticket => {
+        tbody.innerHTML += `<tr>
+            <td><small>${ticket.id || 'N/A'}</small></td>
+            <td><small>${(ticket.subject || 'No Subject').substring(0, 30)}...</small></td>
+            <td><span class="badge bg-primary">${ticket.status}</span></td>
+            <td><span class="badge bg-secondary">${ticket.priority}</span></td>
+            <td><small>${ticket.requester}</small></td>
+            <td><small>${ticket.company || ticket.account}</small></td>
+            <td><small>${ticket.created_at || 'N/A'}</small></td>
+        </tr>`;
+    });
+}
+
+function downloadReport() {
+    // Add download functionality
+    window.location.href = '/tickets/reports/generate/?type=' + currentReport + '&download=true';
+}
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apply Policy to Groups - MDM Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .policy-info { background: #e7f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .group-list { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
+        .group-item { margin-bottom: 10px; }
+        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-secondary { background: #6c757d; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Apply Policy to Groups</h1>
+    
+    <div class="policy-info">
+        <h3>{{ policy.app_name }} - {{ policy.get_policy_type_display }}</h3>
+        <p>Package: {{ policy.package_name }}</p>
+        <p>Customer: {{ policy.customer.name }}</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <h3>Select Groups:</h3>
+        <div class="group-list">
+            {% for group in groups %}
+            <div class="group-item">
+                <label>
+                    <input type="checkbox" name="groups" value="{{ group.id }}">
+                    {{ group.name }} ({{ group.devices.count }} devices)
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn">Apply Policy</button>
+            <a href="{% url 'mdm:app_policies' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</body>
+</html>

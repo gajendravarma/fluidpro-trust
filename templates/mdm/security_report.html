@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Security Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Security Events Report</h4>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <form method="get" class="form-inline">
+                                <select name="severity" class="form-control mr-2">
+                                    <option value="">All Severities</option>
+                                    {% for value, label in severity_choices %}
+                                    <option value="{{ value }}" {% if request.GET.severity == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="resolved" class="form-control mr-2">
+                                    <option value="">All Events</option>
+                                    <option value="false" {% if request.GET.resolved == 'false' %}selected{% endif %}>Unresolved</option>
+                                    <option value="true" {% if request.GET.resolved == 'true' %}selected{% endif %}>Resolved</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Customer</th>
+                                    <th>Event Type</th>
+                                    <th>Severity</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'mdm:device_detail' event.device.id %}">{{ event.device.device_name }}</a>
+                                    </td>
+                                    <td>{{ event.device.customer.name }}</td>
+                                    <td>{{ event.get_event_type_display }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if event.severity == 'critical' %}danger{% elif event.severity == 'high' %}warning{% elif event.severity == 'medium' %}info{% else %}secondary{% endif %}">
+                                            {{ event.get_severity_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ event.description|truncatechars:50 }}</td>
+                                    <td>
+                                        {% if event.resolved %}
+                                            <span class="badge badge-success">Resolved</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Open</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ event.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No security events found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if events.has_other_pages %}
+                    <nav>
+                        <ul class="pagination">
+                            {% if events.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page={{ events.previous_page_number }}">Previous</a></li>
+                            {% endif %}
+                            
+                            {% for num in events.paginator.page_range %}
+                                {% if events.number == num %}
+                                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% else %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if events.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ events.next_page_number }}">Next</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Technician Company Access{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<input type="hidden" id="csrf-token-value" value="{{ csrf_token }}">
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-user-shield text-primary me-2"></i>Technician Company Access</h1>
+      <p class="text-muted mb-0 small">
+        Control which companies each technician can see.
+        <strong>No companies assigned = unrestricted</strong> (sees all data — for Level-2 / global techs).
+        One or more companies = restricted to only those companies (for inhouse techs).
+      </p>
+    </div>
+    <a href="{% url 'rbac:manage_users' %}" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to User Management
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Legend -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm border-start border-4 border-success">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success">Unrestricted</span>
+            <small class="text-muted">No companies assigned — sees ALL companies (Level-2 / global tech)</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm border-start border-4 border-warning">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning text-dark">Restricted</span>
+            <small class="text-muted">One or more companies — sees ONLY those companies (inhouse tech)</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm border-start border-4 border-info">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-info-circle text-info"></i>
+            <small class="text-muted">Changes apply immediately — no server restart needed</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technician cards -->
+  <div class="row g-3">
+    {% for tech in technicians %}
+    {% with accesses=tech.company_accesses.all %}
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center bg-white border-bottom">
+          <div>
+            <span class="fw-semibold">{{ tech.get_full_name|default:tech.username }}</span>
+            <small class="text-muted ms-2">{{ tech.email }}</small>
+          </div>
+          {% if accesses %}
+          <span class="badge bg-warning text-dark">
+            <i class="fas fa-lock me-1"></i>{{ accesses|length }} company{% if accesses|length != 1 %}s{% endif %}
+          </span>
+          {% else %}
+          <span class="badge bg-success">
+            <i class="fas fa-globe me-1"></i>Unrestricted
+          </span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <!-- Current access list -->
+          {% if accesses %}
+          <div class="mb-3">
+            <small class="text-muted fw-semibold d-block mb-1">CURRENTLY ALLOWED:</small>
+            <div class="d-flex flex-wrap gap-1">
+              {% for a in accesses %}
+              <span class="badge bg-primary">{{ a.company.name }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="mb-3">
+            <small class="text-success"><i class="fas fa-check-circle me-1"></i>Can see all companies (no restrictions)</small>
+          </div>
+          {% endif %}
+
+          <!-- Edit button -->
+          <button class="btn btn-sm btn-outline-primary"
+                  onclick="openAccessModal({{ tech.pk }}, '{{ tech.get_full_name|default:tech.username|escapejs }}', [{% for a in accesses %}{{ a.company.pk }}{% if not forloop.last %},{% endif %}{% endfor %}])">
+            <i class="fas fa-edit me-1"></i>Edit Company Access
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No technician users found. Assign the <strong>Technician</strong> role to portal users via
+        <a href="{% url 'rbac:manage_users' %}">User Management</a>.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Edit Access Modal -->
+<div class="modal fade" id="accessModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-shield me-2 text-primary"></i>Edit Company Access — <span id="modal-tech-name"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info py-2 small mb-3">
+          <i class="fas fa-info-circle me-1"></i>
+          Leave <strong>all unchecked</strong> for an unrestricted technician (sees every company).
+          Check one or more companies to restrict this technician to those companies only.
+        </div>
+
+        <div class="row g-2" id="company-checklist">
+          {% for company in companies %}
+          <div class="col-md-4">
+            <div class="form-check border rounded p-2 company-check-item">
+              <input class="form-check-input company-checkbox" type="checkbox"
+                     value="{{ company.pk }}" id="co-{{ company.pk }}">
+              <label class="form-check-label fw-semibold w-100 cursor-pointer" for="co-{{ company.pk }}">
+                {{ company.name }}
+              </label>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllCompanies(false)">
+            <i class="fas fa-times me-1"></i>Clear All (Unrestricted)
+          </button>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllCompanies(true)">
+            <i class="fas fa-check-double me-1"></i>Select All
+          </button>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveAccess()" id="btn-save-access">
+            <i class="fas fa-save me-1"></i>Save Access
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.company-check-item { cursor: pointer; transition: background .15s; }
+.company-check-item:hover { background: #f0f4ff; }
+.company-check-item:has(.form-check-input:checked) { background: #e8f0fe; border-color: #4e73df !important; }
+</style>
+
+<script>
+let currentTechId = null;
+
+function openAccessModal(techId, techName, currentCompanyIds) {
+  currentTechId = techId;
+  document.getElementById('modal-tech-name').textContent = techName;
+
+  // Reset all checkboxes
+  document.querySelectorAll('.company-checkbox').forEach(cb => {
+    cb.checked = currentCompanyIds.includes(parseInt(cb.value));
+  });
+
+  new bootstrap.Modal(document.getElementById('accessModal')).show();
+}
+
+function selectAllCompanies(checked) {
+  document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = checked);
+}
+
+function saveAccess() {
+  const btn = document.getElementById('btn-save-access');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+  const selected = [...document.querySelectorAll('.company-checkbox:checked')].map(cb => cb.value);
+
+  const form = new FormData();
+  form.append('user_id', currentTechId);
+  form.append('csrfmiddlewaretoken', document.getElementById('csrf-token-value').value);
+  selected.forEach(id => form.append('company_ids', id));
+
+  fetch('{% url "rbac:set_technician_company_access" %}', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('accessModal')).hide();
+        // Show success toast then reload
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 m-3 alert alert-success shadow';
+        toast.style.zIndex = 9999;
+        toast.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        alert('Error: ' + data.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i>Save Access';
+      }
+    })
+    .catch(() => {
+      alert('Request failed. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save me-1"></i>Save Access';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - MDM Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>User Management</h4>
+                    <a href="{% url 'mdm:admin_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Admin
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Company</th>
+                                    <th>Role</th>
+                                    <th>Department</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mdm_user in mdm_users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ mdm_user.user.get_full_name|default:mdm_user.user.username }}</strong><br>
+                                        <small class="text-muted">{{ mdm_user.user.email }}</small>
+                                    </td>
+                                    <td>
+                                        {{ mdm_user.mdm_customer.company.name }}<br>
+                                        <small class="text-muted">ID: {{ mdm_user.mdm_customer.customer_id }}</small>
+                                    </td>
+                                    <td><span class="badge bg-primary">{{ mdm_user.role|title }}</span></td>
+                                    <td>{{ mdm_user.department|default:"-" }}</td>
+                                    <td>{{ mdm_user.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'mdm:edit_user' mdm_user.user.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No users found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create App Policy - MDM Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-secondary { background: #6c757d; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Create App Policy</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Customer</label>
+            <select name="customer" required>
+                <option value="">Select Customer</option>
+                {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>App Name</label>
+            <input type="text" name="app_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Package Name</label>
+            <input type="text" name="package_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Policy Type</label>
+            <select name="policy_type" required>
+                <option value="allow">Allow</option>
+                <option value="block">Block</option>
+                <option value="required">Required</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn">Create Policy</button>
+        <a href="{% url 'mdm:app_policies' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</body>
+</html>

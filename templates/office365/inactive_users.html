@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Inactive Users - Microsoft 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-user-clock text-warning me-2"></i>Inactive Users Report</h1>
+      <p class="text-muted mb-0 small">Users who have not signed in within the selected period</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'office365:user_management' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-users-cog me-1"></i>User Management
+      </a>
+      <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}{% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+
+  {% if is_demo %}
+  <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Demo mode — Office 365 credentials not configured.</div>
+  {% endif %}
+
+  {% if not has_signin_data %}
+    {% if premium_required %}
+    <div class="alert alert-info">
+      <h5 class="alert-heading"><i class="fas fa-star me-2"></i>Azure AD Premium Required</h5>
+      <p class="mb-2">
+        The <strong>Inactive Users</strong> report uses the <code>signInActivity</code> field from Microsoft Graph,
+        which is only available to tenants with <strong>Azure AD Premium P1 or P2</strong> (included in
+        Microsoft 365 Business Premium, E3, or E5).
+      </p>
+      <p class="mb-0">
+        This tenant is on a <strong>non-premium plan</strong> (e.g. Business Basic/Standard).
+        To enable this feature, upgrade to <strong>Microsoft 365 Business Premium</strong> or add
+        <strong>Azure AD Premium P1</strong> licences in the Microsoft Admin Center.
+      </p>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <h5 class="alert-heading"><i class="fas fa-lock me-2"></i>Permission Required</h5>
+      <p class="mb-1">Add <code>AuditLog.Read.All</code> (Application) in Azure Portal → App registrations → API permissions, then click <strong>Grant admin consent</strong>.</p>
+    </div>
+    {% endif %}
+  {% endif %}
+
+  <!-- Period selector & summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex gap-3 align-items-center flex-wrap">
+          <span class="fw-semibold">Show users inactive for:</span>
+          <a href="?days=30" class="btn btn-sm {% if days == 30 %}btn-warning{% else %}btn-outline-warning{% endif %}">30 days</a>
+          <a href="?days=60" class="btn btn-sm {% if days == 60 %}btn-warning{% else %}btn-outline-warning{% endif %}">60 days</a>
+          <a href="?days=90" class="btn btn-sm {% if days == 90 %}btn-warning{% else %}btn-outline-warning{% endif %}">90 days</a>
+          <span class="text-muted small ms-auto">Showing: last <strong>{{ days }}</strong> days</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card shadow-sm text-center h-100 border-warning">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-warning">{{ total_inactive }}</div>
+          <div class="small text-muted">Inactive Users</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card shadow-sm text-center h-100 border-danger">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-danger">{{ licensed_waste }}</div>
+          <div class="small text-muted">With Paid License</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if licensed_waste %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>{{ licensed_waste }}</strong> inactive user(s) still hold paid licenses — consider disabling or
+    reassigning these to save cost.
+    <a href="{% url 'office365:user_management' %}?status=enabled&licensed=licensed" class="alert-link ms-1">Manage users &rarr;</a>
+  </div>
+  {% endif %}
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-header py-2">
+      <h6 class="mb-0"><i class="fas fa-user-clock me-2"></i>{{ total_inactive }} inactive user(s)</h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>User</th>
+              <th>Department</th>
+              <th>License</th>
+              <th>Last Sign-in</th>
+              <th>Days Inactive</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr class="{% if u.license_count %}table-warning{% endif %}">
+              <td>
+                <div class="fw-semibold">{{ u.display_name }}</div>
+                <small class="text-muted">{{ u.upn }}</small>
+              </td>
+              <td>{{ u.department|default:"—" }}</td>
+              <td>
+                {% if u.license_count %}
+                  <span class="badge bg-warning text-dark">{{ u.licenses|truncatechars:35 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">Unlicensed</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.last_sign_in %}
+                  {{ u.last_sign_in|slice:":10" }}
+                {% else %}
+                  <span class="text-muted">Never signed in</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {% if u.days_inactive >= 90 %}bg-danger{% elif u.days_inactive >= 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                  {{ u.days_inactive }}+ days
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-4 text-success">
+              <i class="fas fa-check-circle me-2"></i>No inactive users found in the last {{ days }} days.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

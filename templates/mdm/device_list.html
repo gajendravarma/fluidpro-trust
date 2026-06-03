@@ -1,0 +1,678 @@
+{% extends 'base.html' %}
+
+{% block title %}Devices — MDM Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Reset base.html overrides scoped to this page ── */
+  .mdm-page .card            { transform: none !important; box-shadow: 0 1px 4px rgba(0,0,0,.08) !important; border-radius: 10px !important; overflow: visible !important; transition: none !important; }
+  .mdm-page .card:hover      { transform: none !important; box-shadow: 0 2px 8px rgba(0,0,0,.12) !important; }
+  .mdm-page .card-body       { padding: 1rem !important; }
+  .mdm-page .btn             { padding: 0.3rem 0.75rem !important; font-size: 0.82rem !important; border-radius: 8px !important; transform: none !important; transition: none !important; }
+  .mdm-page .btn:hover       { transform: none !important; }
+  .mdm-page .form-control,
+  .mdm-page .form-select     { padding: 0.3rem 0.6rem !important; font-size: 0.84rem !important; border-radius: 8px !important; transform: none !important; transition: none !important; }
+  .mdm-page .form-control:focus,
+  .mdm-page .form-select:focus { transform: none !important; }
+  .mdm-page .table           { border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+  .mdm-page .table th        { background: #f8f9fa !important; color: #6c757d !important; font-size: 0.73rem !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: .05em !important; padding: 0.6rem 0.75rem !important; border-bottom: 2px solid #e9ecef !important; white-space: nowrap !important; }
+  .mdm-page .table td        { padding: 0.55rem 0.75rem !important; font-size: 0.86rem !important; border-color: #f1f3f5 !important; vertical-align: middle !important; }
+  .mdm-page .table tbody tr:hover { background: #f8f9ff !important; transform: none !important; }
+  .mdm-page .input-group-text { padding: 0.3rem 0.6rem !important; font-size: 0.84rem !important; background: #fff !important; }
+
+  /* ── Page layout ── */
+  .page-header { border-bottom: 1px solid #e9ecef; padding-bottom: .75rem; margin-bottom: 1.25rem; }
+
+  /* ── Stat cards ── */
+  .stat-card .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+  .stat-card .stat-val  { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+  .stat-card .stat-lbl  { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
+
+  /* ── Filter bar ── */
+  .filter-bar { background: #fff; border-radius: 10px; border: 1px solid #e9ecef; padding: 0.75rem 1rem; }
+  .filter-bar label { font-size: 0.72rem; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+
+  /* ── Device name cell ── */
+  .device-icon { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
+  .device-name { font-weight: 600; color: #212529; font-size: 0.86rem; line-height: 1.3; }
+  .device-sub  { font-size: 0.72rem; color: #6c757d; line-height: 1.3; }
+
+  /* ── Status pill ── */
+  .status-pill { display: inline-block; font-size: 0.7rem; padding: 2px 9px; border-radius: 20px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+
+  /* ── Mini progress bars ── */
+  .mini-bar      { height: 5px; border-radius: 3px; background: #e9ecef; overflow: hidden; margin-top: 2px; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Action buttons ── */
+  .action-group .btn  { padding: 2px 7px !important; font-size: 0.75rem !important; }
+  .action-group .dropdown-toggle-split { padding: 2px 5px !important; }
+
+  /* ── Pagination ── */
+  .mdm-page .page-link { color: #4c6ef5; border-radius: 6px !important; margin: 0 2px; border: 1px solid #dee2e6; padding: 0.3rem 0.6rem; font-size: 0.82rem; }
+  .mdm-page .page-item.active .page-link { background: #4c6ef5; border-color: #4c6ef5; color: #fff; }
+  .mdm-page .page-item.disabled .page-link { color: #adb5bd; }
+
+  /* ── View toggle ── */
+  .view-btn        { border: 1px solid #dee2e6 !important; background: #fff !important; color: #6c757d !important; padding: 0.3rem 0.6rem !important; }
+  .view-btn.active { background: #4c6ef5 !important; color: #fff !important; border-color: #4c6ef5 !important; }
+
+  /* ── Result info row ── */
+  .result-row { font-size: 0.82rem; }
+
+  /* ── Filter chips ── */
+  .filter-chip { font-size: 0.72rem; padding: 2px 10px; border-radius: 20px; background: #e8edff; color: #4c6ef5; display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ── Grid cards ── */
+  .mdm-page .grid-card .card-body { padding: 0.85rem !important; }
+  .mdm-page .grid-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12) !important; }
+  .grid-metrics { border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
+  .grid-metrics .col-4 { padding: 6px 4px; }
+
+  /* ── Empty state ── */
+  .empty-state { padding: 4rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mdm-page container-fluid px-4 py-3">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="fas fa-mobile-alt me-2 text-primary"></i>Device Management
+      </h4>
+      <small class="text-muted">Monitor and manage all enrolled devices</small>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="location.reload()"
+              style="padding:5px 12px;font-size:0.82rem;font-weight:600;border:1.5px solid #dee2e6;border-radius:8px;background:#fff;color:#495057;cursor:pointer;">
+        <i class="fas fa-sync-alt me-1"></i>Refresh
+      </button>
+      {% if user_role in 'admin,technician' %}
+      <a href="{% url 'mdm:sync_all_data' %}" id="syncAllBtn" onclick="return triggerSyncAll(event)"
+         style="padding:5px 12px;font-size:0.82rem;font-weight:600;border:1.5px solid #4c6ef5;border-radius:8px;background:#fff;color:#4c6ef5;text-decoration:none;display:inline-flex;align-items:center;">
+        <i class="fas fa-cloud-download-alt me-1"></i>Sync All
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Stat Cards (pure inline styles to bypass base.html .card overrides) ── -->
+  <div class="mdm-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+    <!-- Total -->
+    <a href="{% url 'mdm:device_list' %}{% if company_filter %}?company={{ company_filter }}{% endif %}"
+       style="text-decoration:none;background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:12px;transition:box-shadow .15s;"
+       onmouseover="this.style.boxShadow='0 4px 14px rgba(76,110,245,.2)'" onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)'">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(76,110,245,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-mobile-alt" style="color:#4c6ef5;font-size:1rem;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.55rem;font-weight:700;color:#4c6ef5;line-height:1.1;">{{ total_count }}</div>
+        <div style="font-size:0.72rem;color:#6c757d;margin-top:2px;">Total Devices</div>
+      </div>
+    </a>
+    <!-- Active -->
+    <a href="{% url 'mdm:device_list' %}?status=active{% if company_filter %}&company={{ company_filter }}{% endif %}"
+       style="text-decoration:none;background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:12px;transition:box-shadow .15s;"
+       onmouseover="this.style.boxShadow='0 4px 14px rgba(25,135,84,.2)'" onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)'">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(25,135,84,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-check-circle" style="color:#198754;font-size:1rem;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.55rem;font-weight:700;color:#198754;line-height:1.1;">{{ active_count }}</div>
+        <div style="font-size:0.72rem;color:#6c757d;margin-top:2px;">Active / Enrolled</div>
+      </div>
+    </a>
+    <!-- Pending -->
+    <a href="{% url 'mdm:device_list' %}?status=enrollment_pending{% if company_filter %}&company={{ company_filter }}{% endif %}"
+       style="text-decoration:none;background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:12px;transition:box-shadow .15s;"
+       onmouseover="this.style.boxShadow='0 4px 14px rgba(255,193,7,.2)'" onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)'">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,193,7,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-hourglass-half" style="color:#c9921a;font-size:1rem;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.55rem;font-weight:700;color:#c9921a;line-height:1.1;">{{ pending_count }}</div>
+        <div style="font-size:0.72rem;color:#6c757d;margin-top:2px;">Pending / Staged</div>
+      </div>
+    </a>
+    <!-- Retired -->
+    <a href="{% url 'mdm:device_list' %}?status=retired{% if company_filter %}&company={{ company_filter }}{% endif %}"
+       style="text-decoration:none;background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:12px;transition:box-shadow .15s;"
+       onmouseover="this.style.boxShadow='0 4px 14px rgba(220,53,69,.2)'" onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)'">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(220,53,69,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-ban" style="color:#dc3545;font-size:1rem;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.55rem;font-weight:700;color:#dc3545;line-height:1.1;">{{ inactive_count }}</div>
+        <div style="font-size:0.72rem;color:#6c757d;margin-top:2px;">Retired</div>
+      </div>
+    </a>
+  </div>
+  <!-- Responsive fallback for mobile -->
+  <style>
+    @media (max-width:600px) {
+      .mdm-stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+    }
+  </style>
+
+  <!-- ── Filter Bar ── -->
+  <form method="get" id="filterForm">
+    <div class="filter-bar mb-3">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+        <!-- Search -->
+        <div style="flex:2;min-width:180px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Search</div>
+          <input type="text" name="search" id="searchInput"
+                 value="{{ search }}" placeholder="Name, user, email…"
+                 style="width:100%;padding:6px 10px 6px 30px;font-size:0.84rem;border:1.5px solid #dee2e6;border-radius:8px;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E\") no-repeat 9px center;outline:none;box-sizing:border-box;">
+        </div>
+        <!-- Status -->
+        <div style="flex:1;min-width:130px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Status</div>
+          <select name="status" onchange="this.form.submit()"
+                  style="width:100%;padding:6px 8px;font-size:0.84rem;border:1.5px solid #dee2e6;border-radius:8px;background:#fff;outline:none;box-sizing:border-box;">
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Type -->
+        <div style="flex:1;min-width:120px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Type</div>
+          <select name="device_type" onchange="this.form.submit()"
+                  style="width:100%;padding:6px 8px;font-size:0.84rem;border:1.5px solid #dee2e6;border-radius:8px;background:#fff;outline:none;box-sizing:border-box;">
+            <option value="">All Types</option>
+            {% for val, label in device_types %}
+            <option value="{{ val }}" {% if device_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if companies %}
+        <!-- Company -->
+        <div style="flex:2;min-width:160px;">
+          <div style="font-size:0.7rem;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Company</div>
+          <select name="company" onchange="this.form.submit()"
+                  style="width:100%;padding:6px 8px;font-size:0.84rem;border:1.5px solid #dee2e6;border-radius:8px;background:#fff;outline:none;box-sizing:border-box;">
+            <option value="">All Companies</option>
+            {% for company in companies %}
+            <option value="{{ company.id }}"
+              {% if company_filter == company.id|stringformat:"s" %}selected{% endif %}>
+              {{ company.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <!-- Actions -->
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button type="submit"
+                  style="padding:6px 14px;font-size:0.84rem;font-weight:600;border:none;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;cursor:pointer;white-space:nowrap;">
+            <i class="fas fa-search me-1"></i>Search
+          </button>
+          <a href="{% url 'mdm:device_list' %}" title="Clear filters"
+             style="padding:6px 10px;font-size:0.84rem;border:1.5px solid #dee2e6;border-radius:8px;background:#fff;color:#6c757d;text-decoration:none;display:inline-flex;align-items:center;">
+            <i class="fas fa-times"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Active filter chips -->
+      {% if search or status or device_type or company_filter %}
+      <div class="d-flex flex-wrap gap-1 mt-2 pt-2 border-top">
+        <span class="text-muted" style="font-size:.72rem; line-height:24px;">Active:</span>
+        {% if search %}<span class="filter-chip"><i class="fas fa-search"></i>{{ search }}</span>{% endif %}
+        {% if status %}<span class="filter-chip"><i class="fas fa-circle"></i>{{ status|title }}</span>{% endif %}
+        {% if device_type %}<span class="filter-chip"><i class="fas fa-mobile-alt"></i>{{ device_type|title }}</span>{% endif %}
+        {% if company_filter %}
+          {% for company in companies %}{% if company.id|stringformat:"s" == company_filter %}<span class="filter-chip"><i class="fas fa-building"></i>{{ company.name }}</span>{% endif %}{% endfor %}
+        {% endif %}
+        <a href="{% url 'mdm:device_list' %}" class="filter-chip text-danger" style="background:#ffe8e8; text-decoration:none;">
+          <i class="fas fa-times"></i>Clear all
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- ── Result count & view toggle ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;font-size:0.82rem;color:#6c757d;">
+    <span>
+      Showing <strong style="color:#212529;">{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong>
+      of <strong style="color:#212529;">{{ total_count }}</strong> device{{ total_count|pluralize }}
+      {% if paginator.num_pages > 1 %}&nbsp;·&nbsp; Page {{ page_obj.number }}/{{ paginator.num_pages }}{% endif %}
+    </span>
+    <div style="display:flex;gap:4px;">
+      <button id="btnTable" onclick="setView('table')" title="Table view"
+              style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #4c6ef5;border-radius:7px;background:#4c6ef5;color:#fff;cursor:pointer;">
+        <i class="fas fa-list"></i>
+      </button>
+      <button id="btnGrid" onclick="setView('grid')" title="Grid view"
+              style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#6c757d;cursor:pointer;">
+        <i class="fas fa-th-large"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TABLE VIEW (default)
+  ══════════════════════════════════════════ -->
+  <div id="tableView">
+    <div style="background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.08);overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.86rem;">
+          <thead>
+            <tr style="background:#f8f9fa;border-bottom:2px solid #e9ecef;">
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:240px;text-align:left;">Device</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;">Company</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;">Platform / OS</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;">Serial / IMEI</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;">Status</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:90px;text-align:left;">Storage</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;">Last Seen</th>
+              <th style="padding:9px 12px;font-size:0.72rem;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:100px;text-align:left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for device in devices %}
+            <tr style="border-bottom:1px solid #f1f3f5;transition:background .15s;" onmouseover="this.style.background='#f8f9ff'" onmouseout="this.style.background=''">
+
+              <!-- Device name + icon -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                <div style="display:flex;align-items:center;gap:9px;">
+                  <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                    {% if device.device_type == 'android' %}background:rgba(25,135,84,.12);
+                    {% elif device.device_type == 'ios' %}background:rgba(33,37,41,.1);
+                    {% elif device.device_type == 'windows' %}background:rgba(76,110,245,.12);
+                    {% else %}background:rgba(108,117,125,.1);{% endif %}">
+                    {% if device.device_type == 'android' %}<i class="fab fa-android" style="color:#198754;font-size:.9rem;"></i>
+                    {% elif device.device_type == 'ios' %}<i class="fab fa-apple" style="color:#212529;font-size:.9rem;"></i>
+                    {% elif device.device_type == 'windows' %}<i class="fab fa-windows" style="color:#4c6ef5;font-size:.9rem;"></i>
+                    {% else %}<i class="fas fa-mobile-alt" style="color:#6c757d;font-size:.9rem;"></i>{% endif %}
+                  </div>
+                  <div>
+                    <div style="font-weight:600;font-size:0.86rem;color:#212529;line-height:1.3;">{{ device.device_name|truncatechars:28 }}</div>
+                    <div style="font-size:0.72rem;color:#6c757d;line-height:1.3;">
+                      {% if device.username %}<i class="fas fa-user" style="font-size:.65rem;margin-right:2px;"></i>{{ device.username|truncatechars:18 }}{% endif %}
+                      {% if device.model %}&nbsp;·&nbsp;{{ device.model }}{% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Company -->
+              <td style="padding:9px 12px;vertical-align:middle;font-size:0.83rem;color:#495057;">
+                {{ device.customer_name }}
+              </td>
+
+              <!-- Platform / OS -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                <span style="font-size:0.83rem;color:#212529;font-weight:500;">{{ device.device_type|title }}</span>
+                {% if device.os_version %}
+                <div style="font-size:0.72rem;color:#6c757d;">{{ device.os_version }}</div>
+                {% endif %}
+              </td>
+
+              <!-- Serial / IMEI -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                {% if device.serial_number %}
+                <div style="font-size:0.78rem;color:#495057;font-family:monospace;">{{ device.serial_number|truncatechars:16 }}</div>
+                {% endif %}
+                {% if device.imei %}
+                <div style="font-size:0.7rem;color:#6c757d;">IMEI: {{ device.imei }}</div>
+                {% endif %}
+                {% if not device.serial_number and not device.imei %}
+                <span style="color:#adb5bd;font-size:0.78rem;">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Status -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                <span style="display:inline-block;font-size:0.7rem;padding:2px 9px;border-radius:20px;font-weight:600;white-space:nowrap;
+                  {% if device.status == 'active' %}background:rgba(25,135,84,.12);color:#198754;
+                  {% elif device.status == 'retired' %}background:rgba(220,53,69,.12);color:#dc3545;
+                  {% elif device.status == 'staged' %}background:rgba(255,193,7,.12);color:#c9921a;
+                  {% elif device.status == 'enrollment_pending' %}background:rgba(13,202,240,.12);color:#0dcaf0;
+                  {% else %}background:rgba(108,117,125,.1);color:#6c757d;{% endif %}">
+                  {{ device.status_display }}
+                </span>
+              </td>
+
+              <!-- Storage (from device_capacity) -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                {% if device.storage_gb %}
+                  <span style="font-size:0.83rem;font-weight:600;color:#212529;">{{ device.storage_gb }} GB</span>
+                {% else %}
+                  <span style="font-size:0.78rem;color:#adb5bd;">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Last Seen -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                {% if device.last_contact_time %}
+                  <span style="font-size:0.83rem;color:#495057;" title="{{ device.last_contact_time }}">
+                    {{ device.last_contact_time|timesince }} ago
+                  </span>
+                {% elif device.last_seen %}
+                  <span style="font-size:0.83rem;color:#495057;" title="{{ device.last_seen }}">
+                    {{ device.last_seen|timesince }} ago
+                  </span>
+                {% else %}
+                  <span style="color:#adb5bd;font-size:0.83rem;">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Actions -->
+              <td style="padding:9px 12px;vertical-align:middle;">
+                <div style="display:flex;gap:4px;align-items:center;">
+                  <a href="{% url 'mdm:device_detail' device.id %}" title="View details"
+                     style="padding:3px 8px;font-size:0.78rem;border:1.5px solid #4c6ef5;border-radius:6px;background:#fff;color:#4c6ef5;text-decoration:none;display:inline-flex;align-items:center;">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if user_role in 'admin,technician' %}
+                  <button title="Sync" onclick="syncDevice({{ device.id }})"
+                          style="padding:3px 8px;font-size:0.78rem;border:1.5px solid #dee2e6;border-radius:6px;background:#fff;color:#6c757d;cursor:pointer;">
+                    <i class="fas fa-sync-alt"></i>
+                  </button>
+                  <div class="dropdown">
+                    <button data-bs-toggle="dropdown" title="More actions"
+                            style="padding:3px 7px;font-size:0.78rem;border:1.5px solid #dee2e6;border-radius:6px;background:#fff;color:#6c757d;cursor:pointer;">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:0.84rem;">
+                      <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'lock')"><i class="fas fa-lock me-2" style="color:#ffc107;"></i>Lock</a></li>
+                      <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'ring')"><i class="fas fa-bell me-2" style="color:#0dcaf0;"></i>Ring</a></li>
+                      <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'locate')"><i class="fas fa-crosshairs me-2" style="color:#4c6ef5;"></i>Locate</a></li>
+                      <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'restart')"><i class="fas fa-redo me-2" style="color:#6c757d;"></i>Restart</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="#" style="color:#dc3545;" onclick="wipeDevice({{ device.id }})"><i class="fas fa-trash-alt me-2"></i>Wipe Device</a></li>
+                    </ul>
+                  </div>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" style="padding:4rem 0;text-align:center;color:#6c757d;">
+                <i class="fas fa-mobile-alt fa-3x" style="display:block;margin-bottom:1rem;opacity:.35;"></i>
+                <strong style="display:block;margin-bottom:4px;">No devices found</strong>
+                <small>Try adjusting your filters or run a sync.</small>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       GRID VIEW (toggle)
+  ══════════════════════════════════════════ -->
+  <div id="gridView" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+      {% for device in devices %}
+      <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:10px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+              {% if device.device_type == 'android' %}background:rgba(25,135,84,.12);
+              {% elif device.device_type == 'ios' %}background:rgba(33,37,41,.1);
+              {% elif device.device_type == 'windows' %}background:rgba(76,110,245,.12);
+              {% else %}background:rgba(108,117,125,.1);{% endif %}">
+              {% if device.device_type == 'android' %}<i class="fab fa-android" style="color:#198754;"></i>
+              {% elif device.device_type == 'ios' %}<i class="fab fa-apple" style="color:#212529;"></i>
+              {% elif device.device_type == 'windows' %}<i class="fab fa-windows" style="color:#4c6ef5;"></i>
+              {% else %}<i class="fas fa-mobile-alt" style="color:#6c757d;"></i>{% endif %}
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.86rem;color:#212529;" title="{{ device.device_name }}">{{ device.device_name|truncatechars:22 }}</div>
+              <div style="font-size:0.72rem;color:#6c757d;">{{ device.customer_name }}</div>
+            </div>
+          </div>
+          <span style="font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;
+            {% if device.status == 'active' %}background:rgba(25,135,84,.12);color:#198754;
+            {% elif device.status == 'retired' %}background:rgba(220,53,69,.12);color:#dc3545;
+            {% elif device.status == 'staged' %}background:rgba(255,193,7,.12);color:#c9921a;
+            {% elif device.status == 'enrollment_pending' %}background:rgba(13,202,240,.12);color:#0dcaf0;
+            {% else %}background:rgba(108,117,125,.1);color:#6c757d;{% endif %}">
+            {{ device.status_display }}
+          </span>
+        </div>
+
+        <!-- User / Model row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="background:#f8f9fa;border-radius:8px;padding:6px 8px;text-align:center;">
+            <div style="font-size:0.68rem;color:#6c757d;">User</div>
+            <div style="font-size:0.78rem;font-weight:600;color:#212529;">{{ device.username|default:"—"|truncatechars:14 }}</div>
+          </div>
+          <div style="background:#f8f9fa;border-radius:8px;padding:6px 8px;text-align:center;">
+            <div style="font-size:0.68rem;color:#6c757d;">Model</div>
+            <div style="font-size:0.78rem;font-weight:600;color:#212529;">{{ device.model|default:"—"|truncatechars:14 }}</div>
+          </div>
+        </div>
+
+        <!-- Metrics: Serial / Storage / OS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e9ecef;border-radius:8px;overflow:hidden;text-align:center;">
+          <div style="padding:6px 4px;border-right:1px solid #e9ecef;">
+            <div style="font-size:0.75rem;font-weight:600;color:#495057;font-family:monospace;">{{ device.serial_number|truncatechars:12|default:"—" }}</div>
+            <div style="font-size:0.65rem;color:#6c757d;">Serial</div>
+          </div>
+          <div style="padding:6px 4px;">
+            {% if device.storage_gb %}
+            <div style="font-size:0.82rem;font-weight:700;color:#0dcaf0;">{{ device.storage_gb }} GB</div>
+            {% else %}
+            <div style="font-size:0.82rem;font-weight:700;color:#adb5bd;">—</div>
+            {% endif %}
+            <div style="font-size:0.65rem;color:#6c757d;">Storage</div>
+          </div>
+        </div>
+
+        <!-- OS & last seen -->
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#6c757d;">
+          <span><i class="fas fa-code-branch" style="margin-right:3px;"></i>{{ device.device_type|title }} {{ device.os_version }}</span>
+          {% if device.last_contact_time %}
+          <span><i class="fas fa-clock" style="margin-right:3px;"></i>{{ device.last_contact_time|timesince }} ago</span>
+          {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div style="display:flex;gap:5px;margin-top:auto;">
+          <a href="{% url 'mdm:device_detail' device.id %}"
+             style="flex:1;padding:5px 8px;font-size:0.78rem;font-weight:600;border:1.5px solid #4c6ef5;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;text-align:center;">
+            <i class="fas fa-eye me-1"></i>Details
+          </a>
+          {% if user_role in 'admin,technician' %}
+          <button title="Sync" onclick="syncDevice({{ device.id }})"
+                  style="padding:5px 8px;font-size:0.78rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#6c757d;cursor:pointer;">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <div class="dropdown">
+            <button data-bs-toggle="dropdown" title="Actions"
+                    style="padding:5px 8px;font-size:0.78rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#6c757d;cursor:pointer;">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:0.84rem;">
+              <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'lock')"><i class="fas fa-lock me-2" style="color:#ffc107;"></i>Lock</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'ring')"><i class="fas fa-bell me-2" style="color:#0dcaf0;"></i>Ring</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'locate')"><i class="fas fa-crosshairs me-2" style="color:#4c6ef5;"></i>Locate</a></li>
+              <li><a class="dropdown-item" href="#" onclick="sendAction({{ device.id }},'restart')"><i class="fas fa-redo me-2" style="color:#6c757d;"></i>Restart</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" style="color:#dc3545;" onclick="wipeDevice({{ device.id }})"><i class="fas fa-trash-alt me-2"></i>Wipe</a></li>
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+      {% empty %}
+      <div style="grid-column:1/-1;padding:4rem 0;text-align:center;color:#6c757d;">
+        <i class="fas fa-mobile-alt fa-3x" style="display:block;margin-bottom:1rem;opacity:.35;"></i>
+        <strong style="display:block;margin-bottom:4px;">No devices found</strong>
+        <small>Try adjusting your filters.</small>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Pagination ── -->
+  {% if paginator.num_pages > 1 %}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;flex-wrap:wrap;gap:10px;">
+    <small style="color:#6c757d;font-size:0.82rem;">
+      Page {{ page_obj.number }} of {{ paginator.num_pages }}
+      &nbsp;·&nbsp; {{ total_count }} device{{ total_count|pluralize }} total
+    </small>
+    <div style="display:flex;gap:3px;align-items:center;">
+      {% if page_obj.has_previous %}
+      <a href="?{% if search %}search={{ search }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if device_type %}device_type={{ device_type }}&{% endif %}{% if company_filter %}company={{ company_filter }}&{% endif %}page=1"
+         style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;"><i class="fas fa-angle-double-left"></i></a>
+      <a href="?{% if search %}search={{ search }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if device_type %}device_type={{ device_type }}&{% endif %}{% if company_filter %}company={{ company_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+         style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;"><i class="fas fa-angle-left"></i></a>
+      {% else %}
+      <span style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#adb5bd;"><i class="fas fa-angle-double-left"></i></span>
+      <span style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#adb5bd;"><i class="fas fa-angle-left"></i></span>
+      {% endif %}
+
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #4c6ef5;border-radius:7px;background:#4c6ef5;color:#fff;font-weight:600;">{{ num }}</span>
+        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+          <a href="?{% if search %}search={{ search }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if device_type %}device_type={{ device_type }}&{% endif %}{% if company_filter %}company={{ company_filter }}&{% endif %}page={{ num }}"
+             style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+      <a href="?{% if search %}search={{ search }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if device_type %}device_type={{ device_type }}&{% endif %}{% if company_filter %}company={{ company_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+         style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;"><i class="fas fa-angle-right"></i></a>
+      <a href="?{% if search %}search={{ search }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if device_type %}device_type={{ device_type }}&{% endif %}{% if company_filter %}company={{ company_filter }}&{% endif %}page={{ paginator.num_pages }}"
+         style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#4c6ef5;text-decoration:none;"><i class="fas fa-angle-double-right"></i></a>
+      {% else %}
+      <span style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#adb5bd;"><i class="fas fa-angle-right"></i></span>
+      <span style="padding:4px 9px;font-size:0.8rem;border:1.5px solid #dee2e6;border-radius:7px;background:#fff;color:#adb5bd;"><i class="fas fa-angle-double-right"></i></span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="mainToast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMsg"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+/* ── Toast helper ── */
+function showToast(msg, ok) {
+  const el = document.getElementById('mainToast');
+  el.className = 'toast align-items-center text-white border-0 ' + (ok ? 'bg-success' : 'bg-danger');
+  document.getElementById('toastMsg').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(el, {delay: 4000}).show();
+}
+
+/* ── Live search with debounce ── */
+let searchTimer;
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 500);
+});
+
+/* ── Table / Grid view toggle ── */
+const savedView = localStorage.getItem('mdm_device_view') || 'table';
+setView(savedView, false);
+
+function setView(v, save=true) {
+  document.getElementById('tableView').style.display = v === 'table' ? '' : 'none';
+  document.getElementById('gridView').style.display  = v === 'grid'  ? '' : 'none';
+  const bt = document.getElementById('btnTable');
+  const bg = document.getElementById('btnGrid');
+  if (v === 'table') {
+    bt.style.background = '#4c6ef5'; bt.style.color = '#fff'; bt.style.borderColor = '#4c6ef5';
+    bg.style.background = '#fff'; bg.style.color = '#6c757d'; bg.style.borderColor = '#dee2e6';
+  } else {
+    bg.style.background = '#4c6ef5'; bg.style.color = '#fff'; bg.style.borderColor = '#4c6ef5';
+    bt.style.background = '#fff'; bt.style.color = '#6c757d'; bt.style.borderColor = '#dee2e6';
+  }
+  if (save) localStorage.setItem('mdm_device_view', v);
+}
+
+/* ── Single device sync ── */
+function syncDevice(deviceId) {
+  if (!confirm('Sync this device from the MDM API?')) return;
+  fetch(`/mdm/devices/${deviceId}/sync/`, {
+    method: 'POST', headers: {'X-CSRFToken': CSRF}
+  })
+  .then(r => r.json())
+  .then(d => {
+    showToast(d.status === 'success' ? '✓ ' + d.message : '✗ ' + d.message, d.status === 'success');
+    if (d.status === 'success') setTimeout(() => location.reload(), 2000);
+  })
+  .catch(() => showToast('Network error.', false));
+}
+
+/* ── Remote action (lock / ring / locate / restart) ── */
+function sendAction(deviceId, action) {
+  const labels = {lock:'Lock', ring:'Ring', locate:'Locate', restart:'Restart'};
+  if (!confirm(`Send "${labels[action] || action}" command to this device?`)) return;
+  const body = new FormData();
+  body.append('action', action);
+  body.append('csrfmiddlewaretoken', CSRF);
+  fetch(`/mdm/devices/${deviceId}/action/`, {method: 'POST', body})
+  .then(r => r.json())
+  .then(d => showToast(
+    d.status === 'success' ? `✓ ${d.action_label} sent to ${d.device_name}.` : `✗ ${d.message}`,
+    d.status === 'success'
+  ))
+  .catch(() => showToast('Network error.', false));
+}
+
+/* ── Wipe (extra confirmation) ── */
+function wipeDevice(deviceId) {
+  if (!confirm('⚠️ WARNING: This will permanently wipe ALL data.\n\nAre you absolutely sure?')) return;
+  const body = new FormData();
+  body.append('action', 'wipe');
+  body.append('csrfmiddlewaretoken', CSRF);
+  fetch(`/mdm/devices/${deviceId}/action/`, {method: 'POST', body})
+  .then(r => r.json())
+  .then(d => showToast(d.status === 'success' ? '✓ Wipe command sent.' : `✗ ${d.message}`, d.status === 'success'))
+  .catch(() => showToast('Network error.', false));
+}
+
+/* ── Sync all ── */
+function triggerSyncAll(e) {
+  e.preventDefault();
+  if (!confirm('Sync ALL companies from MDM API?')) return false;
+  const btn = document.getElementById('syncAllBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing…';
+  btn.disabled = true;
+  fetch('/mdm/api/sync-all/', {method:'POST', headers:{'X-CSRFToken': CSRF}})
+  .then(r => r.json())
+  .then(d => {
+    showToast(`✓ Sync done: ${d.total_created} new, ${d.total_updated} updated.`, true);
+    btn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i>Sync All';
+    btn.disabled = false;
+    setTimeout(() => location.reload(), 2500);
+  })
+  .catch(() => {
+    showToast('Sync failed — check server logs.', false);
+    btn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i>Sync All';
+    btn.disabled = false;
+  });
+  return false;
+}
+</script>
+{% endblock %}

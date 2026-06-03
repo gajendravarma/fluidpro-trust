@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}Fast Reports - Local Database{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>Fast Reports (Local Database)</h2>
+            
+            {% if sync_info %}
+            <div class="alert alert-info">
+                <strong>Last Sync:</strong> {{ sync_info.last_sync_time|date:"Y-m-d H:i:s" }} | 
+                <strong>Total Tickets:</strong> {{ sync_info.total_tickets }} | 
+                <strong>Status:</strong> {{ sync_info.status }}
+                {% if sync_info.status == 'error' %}
+                    <br><strong>Error:</strong> {{ sync_info.error_message }}
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Company</label>
+                            <select name="company" class="form-select">
+                                <option value="">All Companies</option>
+                                {% for company in companies %}
+                                <option value="{{ company }}" {% if filters.company == company %}selected{% endif %}>{{ company }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Technician</label>
+                            <select name="technician" class="form-select">
+                                <option value="">All Technicians</option>
+                                {% for tech in technicians %}
+                                <option value="{{ tech }}" {% if filters.technician == tech %}selected{% endif %}>{{ tech }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                {% for status in statuses %}
+                                <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="">All Priorities</option>
+                                {% for priority in priorities %}
+                                <option value="{{ priority }}" {% if filters.priority == priority %}selected{% endif %}>{{ priority }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="{% url 'fast_reports' %}" class="btn btn-secondary">Clear</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Tickets</h5>
+                            <h3 class="text-primary">{{ total_tickets }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Companies</h5>
+                            <h3 class="text-info">{{ company_stats|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Technicians</h5>
+                            <h3 class="text-success">{{ technician_stats|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Export</h5>
+                            <a href="{% url 'export_csv' %}?{{ request.GET.urlencode }}" class="btn btn-success">Download CSV</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tickets Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Tickets (Showing first 100)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Company</th>
+                                    <th>Technician</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets %}
+                                <tr>
+                                    <td>{{ ticket.ticket_id|default:ticket.id }}</td>
+                                    <td>{{ ticket.subject|truncatechars:50 }}</td>
+                                    <td><span class="badge bg-secondary">{{ ticket.status }}</span></td>
+                                    <td><span class="badge bg-warning">{{ ticket.priority|default:"Normal" }}</span></td>
+                                    <td>{{ ticket.requester_name|default:"-" }}</td>
+                                    <td>{{ ticket.company_name|default:"-" }}</td>
+                                    <td>{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No tickets found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Top Companies</h6>
+                        </div>
+                        <div class="card-body">
+                            {% for company in company_stats|slice:":5" %}
+                            <div class="d-flex justify-content-between">
+                                <span>{{ company.company_name|default:"Unknown" }}</span>
+                                <span class="badge bg-primary">{{ company.total_tickets }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>Top Technicians</h6>
+                        </div>
+                        <div class="card-body">
+                            {% for tech in technician_stats|slice:":5" %}
+                            <div class="d-flex justify-content-between">
+                                <span>{{ tech.technician_name }}</span>
+                                <span class="badge bg-success">{{ tech.total_tickets }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh sync status every 30 seconds
+setInterval(function() {
+    fetch('{% url "stats_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.sync_info && data.sync_info.status === 'running') {
+                location.reload();
+            }
+        });
+}, 30000);
+</script>
+{% endblock %}

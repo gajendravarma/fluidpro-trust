@@ -1,0 +1,758 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ company_name }} Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-building" aria-hidden="true"></i> {{ company_name }} Dashboard</h1>
+            <p class="text-muted mb-0">Real-time infrastructure and service monitoring</p>
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> {{ error }}</div>
+    {% else %}
+
+        <!-- Pulseway - Device Status -->
+        <h2 class="h5 mb-3"><i class="fas fa-server text-info" aria-hidden="true"></i> Device Status</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-primary shadow h-100 py-2 device-status-card" style="cursor: pointer;" onclick="showDevices('all')">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary mb-1">Total Devices</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-desktop fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-success shadow h-100 py-2 device-status-card" style="cursor: pointer;" onclick="showDevices('online')">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success mb-1">Online</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ online_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-danger shadow h-100 py-2 device-status-card" style="cursor: pointer;" onclick="showDevices('offline')">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger mb-1">Offline</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ offline_devices|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-warning shadow h-100 py-2 device-status-card" style="cursor: pointer;" onclick="showDevices('patches_pending')">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold mb-1" style="color: #856404;">Pending Patches</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_patches|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ManageEngine - Ticket Status -->
+        <h2 class="h5 mb-3"><i class="fas fa-ticket-alt text-danger" aria-hidden="true"></i> Ticket Status (Last 30 Days)</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-info shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('all')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-danger shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Open')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Open</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ open_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-warning shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Progress')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Progress</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ in_progress_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-info shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Pending')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Pending</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Resolved')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Resolved</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ resolved_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Closed')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Closed</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ closed_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if cancelled_tickets %}
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-secondary shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Cancelled')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Cancelled</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ cancelled_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if onhold_tickets %}
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-left-dark shadow h-100 py-2 ticket-status-card" style="cursor: pointer;" onclick="showTickets('Hold')">
+                    <div class="card-body">
+                        <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">On Hold</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ onhold_tickets|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Office 365 - License Status -->
+        <h5 class="mb-3"><i class="fas fa-key text-success"></i> Office 365 Licenses</h5>
+        <div class="row g-3 mb-4">
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Licenses</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-certificate fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Assigned</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ consumed_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Available</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ available_licenses|default:0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Messages -->
+        {% if ticket_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Tickets:</strong> {{ ticket_error }}</div>
+        {% endif %}
+        {% if device_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Devices:</strong> {{ device_error }}</div>
+        {% endif %}
+        {% if license_error %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-circle"></i> <strong>Licenses:</strong> {{ license_error }}</div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Device Details Modal -->
+<div class="modal fade" id="deviceDetailsModal" tabindex="-1" aria-labelledby="deviceDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deviceDetailsModalLabel">Device Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="deviceDetailsLoading" class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="deviceDetailsContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>Status</th>
+                                    <th>IP Address</th>
+                                    <th>OS</th>
+                                    <th>Last Seen</th>
+                                    <th>CPU %</th>
+                                    <th>Memory %</th>
+                                    <th>Disk %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deviceDetailsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="devicePagination" class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="deviceInfo"></div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="devicePaginationList">
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ticket Details Modal -->
+<div class="modal fade" id="ticketDetailsModal" tabindex="-1" aria-labelledby="ticketDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketDetailsModalLabel">Ticket Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="ticketDetailsLoading" class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="ticketDetailsContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Technician</th>
+                                    <th>Requester</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ticketDetailsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="ticketPagination" class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="ticketInfo"></div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="ticketPaginationList">
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Device Details Functions
+function showDevices(status) {
+    const modal = new bootstrap.Modal(document.getElementById('deviceDetailsModal'));
+    document.getElementById('deviceDetailsModalLabel').textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Devices`;
+    document.getElementById('deviceDetailsLoading').style.display = 'block';
+    document.getElementById('deviceDetailsContent').style.display = 'none';
+    modal.show();
+    
+    loadDeviceDetails(status, 1);
+}
+
+function loadDeviceDetails(status, page) {
+    const company = '{{ company_name }}';
+    const url = `/rbac/api/device-details/?company=${encodeURIComponent(company)}&status=${status}&page=${page}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('deviceDetailsLoading').style.display = 'none';
+            document.getElementById('deviceDetailsContent').style.display = 'block';
+            
+            if (data.error) {
+                document.getElementById('deviceDetailsContent').innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            // Populate table
+            const tbody = document.getElementById('deviceDetailsTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.devices && data.devices.length > 0) {
+                data.devices.forEach(device => {
+                    const statusBadge = device.status === 'online' 
+                        ? '<span class="badge bg-success">Online</span>'
+                        : '<span class="badge bg-danger">Offline</span>';
+                    
+                    const row = `
+                        <tr>
+                            <td><strong>${device.device_name}</strong></td>
+                            <td>${statusBadge}</td>
+                            <td>${device.ip_address}</td>
+                            <td>${device.operating_system}</td>
+                            <td>${device.last_seen}</td>
+                            <td>${device.cpu_usage}%</td>
+                            <td>${device.memory_usage}%</td>
+                            <td>${device.disk_usage}%</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No devices found</td></tr>';
+            }
+            
+            // Update pagination
+            updateDevicePagination(data, status);
+            
+            // Update info
+            document.getElementById('deviceInfo').textContent = 
+                `Showing ${data.devices ? data.devices.length : 0} of ${data.total_count || 0} devices`;
+        })
+        .catch(error => {
+            console.error('Device API Error:', error);
+            document.getElementById('deviceDetailsLoading').style.display = 'none';
+            document.getElementById('deviceDetailsContent').innerHTML = 
+                '<div class="alert alert-danger">Error loading device details</div>';
+            document.getElementById('deviceDetailsContent').style.display = 'block';
+        });
+}
+
+function updateDevicePagination(data, status) {
+    const paginationList = document.getElementById('devicePaginationList');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    if (data.has_previous) {
+        paginationList.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadDeviceDetails('${status}', ${data.current_page - 1})">Previous</a>
+            </li>
+        `;
+    }
+    
+    // Page numbers
+    for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.total_pages, data.current_page + 2); i++) {
+        const active = i === data.current_page ? 'active' : '';
+        paginationList.innerHTML += `
+            <li class="page-item ${active}">
+                <a class="page-link" href="#" onclick="loadDeviceDetails('${status}', ${i})">${i}</a>
+            </li>
+        `;
+    }
+    
+    // Next button
+    if (data.has_next) {
+        paginationList.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadDeviceDetails('${status}', ${data.current_page + 1})">Next</a>
+            </li>
+        `;
+    }
+}
+
+// Ticket Details Functions
+function showTickets(status) {
+    const modal = new bootstrap.Modal(document.getElementById('ticketDetailsModal'));
+    document.getElementById('ticketDetailsModalLabel').textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Tickets`;
+    document.getElementById('ticketDetailsLoading').style.display = 'block';
+    document.getElementById('ticketDetailsContent').style.display = 'none';
+    modal.show();
+    
+    loadTicketDetails(status, 1);
+}
+
+function loadTicketDetails(status, page) {
+    const company = '{{ company_name }}';
+    const url = `/rbac/api/ticket-details/?company=${encodeURIComponent(company)}&status=${status}&page=${page}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('ticketDetailsLoading').style.display = 'none';
+            document.getElementById('ticketDetailsContent').style.display = 'block';
+            
+            if (data.error) {
+                document.getElementById('ticketDetailsContent').innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            // Populate table
+            const tbody = document.getElementById('ticketDetailsTableBody');
+            tbody.innerHTML = '';
+            
+            data.tickets.forEach(ticket => {
+                const statusBadge = getStatusBadge(ticket.status);
+                const priorityBadge = getPriorityBadge(ticket.priority);
+                
+                const row = `
+                    <tr>
+                        <td><strong>${ticket.ticket_id}</strong></td>
+                        <td>${ticket.subject}</td>
+                        <td>${statusBadge}</td>
+                        <td>${priorityBadge}</td>
+                        <td>${ticket.technician_name}</td>
+                        <td>${ticket.requester_name}</td>
+                        <td>${ticket.created_at}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+            
+            // Update pagination
+            updateTicketPagination(data, status);
+            
+            // Update info
+            document.getElementById('ticketInfo').textContent = 
+                `Showing ${data.tickets.length} of ${data.total_count} tickets`;
+        })
+        .catch(error => {
+            document.getElementById('ticketDetailsLoading').style.display = 'none';
+            document.getElementById('ticketDetailsContent').innerHTML = 
+                '<div class="alert alert-danger">Error loading ticket details</div>';
+            document.getElementById('ticketDetailsContent').style.display = 'block';
+        });
+}
+
+function updateTicketPagination(data, status) {
+    const paginationList = document.getElementById('ticketPaginationList');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    if (data.has_previous) {
+        paginationList.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadTicketDetails('${status}', ${data.current_page - 1})">Previous</a>
+            </li>
+        `;
+    }
+    
+    // Page numbers
+    for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.total_pages, data.current_page + 2); i++) {
+        const active = i === data.current_page ? 'active' : '';
+        paginationList.innerHTML += `
+            <li class="page-item ${active}">
+                <a class="page-link" href="#" onclick="loadTicketDetails('${status}', ${i})">${i}</a>
+            </li>
+        `;
+    }
+    
+    // Next button
+    if (data.has_next) {
+        paginationList.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadTicketDetails('${status}', ${data.current_page + 1})">Next</a>
+            </li>
+        `;
+    }
+}
+
+function getStatusBadge(status) {
+    const statusMap = {
+        'Open': 'bg-danger',
+        'Closed': 'bg-success',
+        'Resolved': 'bg-success',
+        'Pending': 'bg-warning',
+        'Cancelled': 'bg-secondary',
+        'Onhold': 'bg-dark'
+    };
+    const badgeClass = statusMap[status] || 'bg-secondary';
+    return `<span class="badge ${badgeClass}">${status}</span>`;
+}
+
+function getPriorityBadge(priority) {
+    const priorityMap = {
+        'High': 'bg-danger',
+        'Medium': 'bg-warning',
+        'Low': 'bg-success',
+        'Critical': 'bg-dark'
+    };
+    const badgeClass = priorityMap[priority] || 'bg-secondary';
+    return `<span class="badge ${badgeClass}">${priority}</span>`;
+}
+
+// Add hover effects for clickable cards
+document.addEventListener('DOMContentLoaded', function() {
+    const clickableCards = document.querySelectorAll('.device-status-card, .ticket-status-card');
+    
+    clickableCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+
+<!-- Devices Modal -->
+<div class="modal fade" id="devicesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="devicesModalTitle">Devices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="devicesLoading" class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                    <p>Loading devices...</p>
+                </div>
+                <div id="devicesContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>Status</th>
+                                    <th>Organization</th>
+                                    <th>Site</th>
+                                    <th>OS</th>
+                                    <th>IP Address</th>
+                                    <th>Uptime</th>
+                                    <th>Patches</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devicesTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tickets Modal -->
+<div class="modal fade" id="ticketsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketsModalTitle">Tickets</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="ticketsLoading" class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                    <p>Loading tickets...</p>
+                </div>
+                <div id="ticketsContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Requester</th>
+                                    <th>Technician</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ticketsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="ticketsPagination" class="d-flex justify-content-center mt-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTickets(status) {
+    const modal = new bootstrap.Modal(document.getElementById('ticketsModal'));
+    document.getElementById('ticketsModalTitle').textContent = status + ' Tickets - {{ company_name }}';
+    document.getElementById('ticketsLoading').style.display = 'block';
+    document.getElementById('ticketsContent').style.display = 'none';
+    
+    modal.show();
+    
+    // Fetch tickets via AJAX
+    fetch(`{% url 'rbac:company_tickets_api' %}?status=${status}&company={{ company_name }}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('ticketsLoading').style.display = 'none';
+            document.getElementById('ticketsContent').style.display = 'block';
+            
+            const tbody = document.getElementById('ticketsTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.tickets && data.tickets.length > 0) {
+                data.tickets.forEach(ticket => {
+                    const row = `
+                        <tr>
+                            <td>${ticket.ticket_id}</td>
+                            <td>${ticket.subject.substring(0, 50)}${ticket.subject.length > 50 ? '...' : ''}</td>
+                            <td><span class="badge bg-secondary">${ticket.status}</span></td>
+                            <td><span class="badge bg-info">${ticket.priority}</span></td>
+                            <td>${ticket.requester_name || '-'}</td>
+                            <td>${ticket.technician_name || '-'}</td>
+                            <td>${new Date(ticket.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No tickets found</td></tr>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('ticketsLoading').style.display = 'none';
+            document.getElementById('ticketsContent').innerHTML = '<div class="alert alert-danger">Error loading tickets</div>';
+            document.getElementById('ticketsContent').style.display = 'block';
+        });
+}
+
+function showDevices(status) {
+    const modal = new bootstrap.Modal(document.getElementById('devicesModal'));
+    document.getElementById('devicesModalTitle').textContent = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Devices - {{ company_name }}';
+    document.getElementById('devicesLoading').style.display = 'block';
+    document.getElementById('devicesContent').style.display = 'none';
+    
+    modal.show();
+    
+    // Fetch devices via AJAX
+    fetch(`{% url 'rbac:company_devices_api' %}?status=${status}&company={{ company_name }}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('devicesLoading').style.display = 'none';
+            document.getElementById('devicesContent').style.display = 'block';
+            
+            const tbody = document.getElementById('devicesTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.devices && data.devices.length > 0) {
+                data.devices.forEach(device => {
+                    const statusBadge = device.status === 'online' 
+                        ? '<span class="badge bg-success"><i class="fas fa-circle"></i> Online</span>'
+                        : '<span class="badge bg-danger"><i class="fas fa-circle"></i> Offline</span>';
+                    
+                    const patchesBadge = device.pending_patches > 0
+                        ? `<span class="badge bg-warning">${device.pending_patches} pending</span>`
+                        : '<span class="badge bg-success">Up to date</span>';
+                    
+                    const row = `
+                        <tr>
+                            <td><strong>${device.device_name}</strong></td>
+                            <td>${statusBadge}</td>
+                            <td>${device.organization_name || '-'}</td>
+                            <td>${device.site_name || '-'}</td>
+                            <td>${device.operating_system || '-'}</td>
+                            <td>${device.ip_address || '-'}</td>
+                            <td><small class="text-muted">${device.uptime || '-'}</small></td>
+                            <td>${patchesBadge}</td>
+                            <td><small class="text-muted">${device.last_updated ? new Date(device.last_updated).toLocaleDateString() : '-'}</small></td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">No devices found</td></tr>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('devicesLoading').style.display = 'none';
+            document.getElementById('devicesContent').innerHTML = '<div class="alert alert-danger">Error loading devices</div>';
+            document.getElementById('devicesContent').style.display = 'block';
+        });
+}
+
+// Add hover effects for clickable cards
+document.addEventListener('DOMContentLoaded', function() {
+    const deviceCards = document.querySelectorAll('.device-status-card');
+    const ticketCards = document.querySelectorAll('.ticket-status-card');
+    
+    [...deviceCards, ...ticketCards].forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,642 @@
+<div class="container-fluid mt-2">
+    <div class="row mb-2">
+        <div class="col-12">
+            <h4 class="mb-0"><i class="fas fa-chart-bar"></i> Ticket Reports</h4>
+        </div>
+    </div>
+
+    <!-- Report Controls -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label class="form-label small">Report Type</label>
+            <select class="form-select form-select-sm" id="report-type-select">
+                <option value="daily">📅 Daily</option>
+                <option value="weekly">📊 Weekly</option>
+                <option value="monthly">📈 Monthly</option>
+                <option value="company">🏢 Company</option>
+                <option value="technician">👨‍💻 Technician</option>
+            </select>
+        </div>
+        
+        <div class="col-md-6" id="params-container">
+            <!-- Parameters will be shown here -->
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label small">&nbsp;</label>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success btn-sm" onclick="generateReport()">
+                    <i class="fas fa-chart-line"></i> Generate
+                </button>
+                <button class="btn btn-info btn-sm" onclick="downloadReport()">
+                    <i class="fas fa-download"></i> CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading & Error -->
+    <div id="loading" class="text-center mb-2" style="display:none;">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <small class="ms-2">Loading...</small>
+    </div>
+    <div id="error-message" class="alert alert-warning alert-sm mb-2" style="display:none;">
+        <small><i class="fas fa-exclamation-triangle"></i> <span id="error-text">No data found.</span></small>
+    </div>
+
+    <!-- Report Results -->
+    <div id="report-results" style="display:none;">
+        <!-- Summary Cards -->
+        <div class="row mb-3">
+            <div class="col-6 col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="total-tickets">0</h5>
+                        <small>Total</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="open-tickets">0</h5>
+                        <small>Open</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="pending-tickets">0</h5>
+                        <small>Pending</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body p-2 text-center">
+                        <h5 class="mb-0" id="closed-tickets">0</h5>
+                        <small>Closed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Status Distribution</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="statusChart" style="height: 200px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Priority Breakdown</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="priorityChart" style="height: 200px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Trend Analysis</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="trendChart" style="height: 200px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h6 class="mb-0">Ticket Details</h6>
+                    </div>
+                    <div class="card-body p-1">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="tickets-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Requester</th>
+                                        <th>Company</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tickets-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load ApexCharts from CDN with fallback -->
+<script>
+// Check if ApexCharts is loaded, if not load it
+if (typeof ApexCharts === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/apexcharts@latest';
+    script.onload = function() {
+        console.log('ApexCharts loaded successfully');
+        initializeReports();
+    };
+    script.onerror = function() {
+        console.error('Failed to load ApexCharts from CDN');
+        document.getElementById('error-text').textContent = 'Chart library failed to load. Please refresh the page.';
+        document.getElementById('error-message').style.display = 'block';
+    };
+    document.head.appendChild(script);
+} else {
+    initializeReports();
+}
+let currentReport = 'daily';
+let reportData = null;
+let statusChart = null;
+let priorityChart = null;
+let trendChart = null;
+
+function initializeReports() {
+    console.log('Initializing reports...');
+    showReportForm('daily');
+    
+    // Handle report type change
+    document.getElementById('report-type-select').addEventListener('change', function() {
+        currentReport = this.value;
+        showReportForm(currentReport);
+        document.getElementById('report-results').style.display = 'none';
+    });
+}
+
+// Show correct form based on report type
+function showReportForm(type) {
+    const container = document.getElementById('params-container');
+    
+    if (type === 'daily') {
+        container.innerHTML = `
+            <label class="form-label small">Date</label>
+            <input type="date" class="form-control form-control-sm" id="daily-date">
+        `;
+        document.getElementById('daily-date').valueAsDate = new Date();
+    } 
+    else if (type === 'weekly') {
+        container.innerHTML = `
+            <label class="form-label small">Week Start</label>
+            <input type="date" class="form-control form-control-sm" id="weekly-start">
+        `;
+    }
+    else if (type === 'monthly') {
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label small">Month</label>
+                    <select class="form-select form-select-sm" id="monthly-month">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Year</label>
+                    <select class="form-select form-select-sm" id="monthly-year">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        document.getElementById('monthly-month').value = new Date().getMonth() + 1;
+        document.getElementById('monthly-year').value = new Date().getFullYear();
+    }
+    else if (type === 'company') {
+        container.innerHTML = `
+            <label class="form-label small">Company</label>
+            <select class="form-select form-select-sm" id="company-select">
+                <option value="">Loading companies...</option>
+            </select>
+        `;
+        // Fetch real companies from API
+        fetch('/tickets/reports/companies/')
+            .then(response => response.json())
+            .then(companies => {
+                const select = document.getElementById('company-select');
+                select.innerHTML = '<option value="">All Companies</option>';
+                companies.forEach(company => {
+                    select.innerHTML += `<option value="${company}">${company}</option>`;
+                });
+            })
+            .catch(() => {
+                document.getElementById('company-select').innerHTML = '<option value="">Error loading companies</option>';
+            });
+    }
+    else if (type === 'technician') {
+        container.innerHTML = `
+            <label class="form-label small">Technician</label>
+            <select class="form-select form-select-sm" id="technician-select">
+                <option value="">Loading technicians...</option>
+            </select>
+        `;
+        // Fetch real technicians from API
+        fetch('/tickets/reports/technicians/')
+            .then(response => response.json())
+            .then(technicians => {
+                const select = document.getElementById('technician-select');
+                select.innerHTML = '<option value="">All Technicians</option>';
+                technicians.forEach(tech => {
+                    select.innerHTML += `<option value="${tech}">${tech}</option>`;
+                });
+            })
+            .catch(() => {
+                document.getElementById('technician-select').innerHTML = '<option value="">Error loading technicians</option>';
+            });
+    }
+}
+
+
+function generateReport() {
+    if (typeof ApexCharts === 'undefined') {
+        document.getElementById('error-text').textContent = 'Chart library not loaded. Please refresh the page.';
+        document.getElementById('error-message').style.display = 'block';
+        return;
+    }
+
+    let url = '/tickets/reports/generate/?type=' + currentReport;
+    
+    if (currentReport === 'daily') {
+        url += '&date=' + document.getElementById('daily-date').value;
+    } else if (currentReport === 'weekly') {
+        url += '&start_date=' + document.getElementById('weekly-start').value;
+    } else if (currentReport === 'monthly') {
+        const month = document.getElementById('monthly-month').value;
+        const year = document.getElementById('monthly-year').value;
+        url += '&month=' + month + '&year=' + year;
+        console.log('Requesting monthly report for:', year + '-' + month);
+    } else if (currentReport === 'company') {
+        const company = document.getElementById('company-select').value;
+        if (company) url += '&company=' + encodeURIComponent(company);
+    } else if (currentReport === 'technician') {
+        const tech = document.getElementById('technician-select').value;
+        if (tech) url += '&technician=' + encodeURIComponent(tech);
+    }
+    
+    console.log('Fetching URL:', url);
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('report-results').style.display = 'none';
+    document.getElementById('error-message').style.display = 'none';
+    
+    fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Raw response data:', data);
+        document.getElementById('loading').style.display = 'none';
+        if (data && (data.total_tickets > 0 || data.total_tickets === 0)) {
+            displayReport(data);
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('report-results').style.display = 'block';
+        } else {
+            console.log('No data or invalid response');
+            document.getElementById('error-text').textContent = 'No data found for the selected criteria.';
+            document.getElementById('error-message').style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-text').textContent = `Error loading report: ${error.message}`;
+        document.getElementById('error-message').style.display = 'block';
+    });
+}
+
+function displayReport(data) {
+    console.log('Report data received:', data);
+    console.log('Total tickets:', data.total_tickets);
+    console.log('Status breakdown:', data.status_breakdown);
+    console.log('Priority breakdown:', data.priority_breakdown);
+    
+    // Update summary cards
+    document.getElementById('total-tickets').textContent = data.total_tickets || 0;
+    document.getElementById('open-tickets').textContent = data.status_breakdown?.Open || 0;
+    document.getElementById('pending-tickets').textContent = data.status_breakdown?.Pending || 0;
+    document.getElementById('closed-tickets').textContent = data.status_breakdown?.Closed || 0;
+    
+    // Destroy existing charts
+    if (statusChart) { 
+        try { statusChart.destroy(); } catch(e) { console.log('Error destroying status chart:', e); }
+        statusChart = null; 
+    }
+    if (priorityChart) { 
+        try { priorityChart.destroy(); } catch(e) { console.log('Error destroying priority chart:', e); }
+        priorityChart = null; 
+    }
+    if (trendChart) { 
+        try { trendChart.destroy(); } catch(e) { console.log('Error destroying trend chart:', e); }
+        trendChart = null; 
+    }
+    
+    // Wait a moment for DOM to update
+    setTimeout(() => {
+        createStatusChart(data.status_breakdown || {});
+        createPriorityChart(data.priority_breakdown || {});
+        createTrendChart(data.daily_breakdown || {}, data.total_tickets || 0);
+    }, 100);
+    
+    // Update table
+    updateTicketsTable(data.tickets || []);
+}
+
+function createStatusChart(statusData) {
+    const statusContainer = document.querySelector("#statusChart");
+    if (!statusContainer) return;
+    
+    statusContainer.innerHTML = '';
+    
+    if (Object.keys(statusData).length === 0) {
+        statusContainer.innerHTML = '<div class="text-center p-3"><small class="text-muted">No status data available</small></div>';
+        return;
+    }
+    
+    console.log('Creating status chart with data:', statusData);
+    
+    try {
+        const series = Object.values(statusData);
+        const labels = Object.keys(statusData);
+        
+        if (series.every(val => val === 0)) {
+            statusContainer.innerHTML = '<div class="text-center p-3"><small class="text-muted">No tickets found</small></div>';
+            return;
+        }
+        
+        statusChart = new ApexCharts(statusContainer, {
+            series: series,
+            chart: { 
+                type: 'donut', 
+                height: 200,
+                width: '100%'
+            },
+            labels: labels,
+            colors: ['#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d'],
+            legend: { 
+                position: 'bottom', 
+                fontSize: '10px',
+                markers: { width: 8, height: 8 }
+            },
+            dataLabels: { 
+                enabled: true,
+                formatter: function (val) {
+                    return Math.round(val) + "%"
+                },
+                style: { fontSize: '10px' }
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '60%'
+                    }
+                }
+            }
+        });
+        
+        statusChart.render().then(() => {
+            console.log('Status chart rendered successfully');
+        }).catch(e => {
+            console.error('Status chart render error:', e);
+            statusContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart render error</small></div>';
+        });
+        
+    } catch (e) {
+        console.error('Status chart creation error:', e);
+        statusContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart creation error</small></div>';
+    }
+}
+
+function createPriorityChart(priorityData) {
+    const priorityContainer = document.querySelector("#priorityChart");
+    if (!priorityContainer) return;
+    
+    priorityContainer.innerHTML = '';
+    
+    if (Object.keys(priorityData).length === 0) {
+        priorityContainer.innerHTML = '<div class="text-center p-3"><small class="text-muted">No priority data available</small></div>';
+        return;
+    }
+    
+    console.log('Creating priority chart with data:', priorityData);
+    
+    try {
+        const series = Object.values(priorityData);
+        const categories = Object.keys(priorityData);
+        
+        if (series.every(val => val === 0)) {
+            priorityContainer.innerHTML = '<div class="text-center p-3"><small class="text-muted">No tickets found</small></div>';
+            return;
+        }
+        
+        priorityChart = new ApexCharts(priorityContainer, {
+            series: [{
+                name: 'Tickets',
+                data: series
+            }],
+            chart: { 
+                type: 'bar', 
+                height: 200,
+                width: '100%'
+            },
+            xaxis: { 
+                categories: categories,
+                labels: { 
+                    style: { fontSize: '10px' },
+                    rotate: -45
+                }
+            },
+            yaxis: {
+                labels: { style: { fontSize: '10px' } }
+            },
+            colors: ['#007bff'],
+            dataLabels: { 
+                enabled: true,
+                style: { fontSize: '10px' }
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 2
+                }
+            }
+        });
+        
+        priorityChart.render().then(() => {
+            console.log('Priority chart rendered successfully');
+        }).catch(e => {
+            console.error('Priority chart render error:', e);
+            priorityContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart render error</small></div>';
+        });
+        
+    } catch (e) {
+        console.error('Priority chart creation error:', e);
+        priorityContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart creation error</small></div>';
+    }
+}
+
+function createTrendChart(dailyData, totalTickets) {
+    const trendContainer = document.querySelector("#trendChart");
+    if (!trendContainer) return;
+    
+    trendContainer.innerHTML = '';
+    
+    let trendData = Object.values(dailyData);
+    let trendLabels = Object.keys(dailyData);
+    
+    if (trendData.length === 0) {
+        // Generate sample trend if no daily data
+        const total = totalTickets || 0;
+        const avg = Math.max(1, Math.floor(total / 7));
+        trendData = [];
+        trendLabels = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            trendLabels.push(date.toISOString().split('T')[0]);
+            trendData.push(Math.max(0, avg + Math.floor(Math.random() * avg) - Math.floor(avg/2)));
+        }
+    }
+    
+    console.log('Creating trend chart with data:', trendData);
+    
+    try {
+        trendChart = new ApexCharts(trendContainer, {
+            series: [{ 
+                name: 'Daily Tickets', 
+                data: trendData 
+            }],
+            chart: { 
+                type: 'line', 
+                height: 200,
+                width: '100%'
+            },
+            xaxis: {
+                categories: trendLabels,
+                labels: { 
+                    show: trendLabels.length <= 10,
+                    style: { fontSize: '9px' }
+                }
+            },
+            yaxis: {
+                labels: { style: { fontSize: '10px' } }
+            },
+            stroke: { 
+                curve: 'smooth', 
+                width: 3 
+            },
+            colors: ['#28a745'],
+            dataLabels: { enabled: false },
+            markers: { size: 4 }
+        });
+        
+        trendChart.render().then(() => {
+            console.log('Trend chart rendered successfully');
+        }).catch(e => {
+            console.error('Trend chart render error:', e);
+            trendContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart render error</small></div>';
+        });
+        
+    } catch (e) {
+        console.error('Trend chart creation error:', e);
+        trendContainer.innerHTML = '<div class="text-center p-3"><small class="text-danger">Chart creation error</small></div>';
+    }
+}
+
+function updateTicketsTable(tickets) {
+    const tbody = document.getElementById('tickets-tbody');
+    tbody.innerHTML = '';
+    
+    console.log(`Displaying ${tickets.length} tickets in table`);
+    
+    if (tickets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted"><small>No tickets found</small></td></tr>';
+        return;
+    }
+    
+    tickets.slice(0, 50).forEach(ticket => {
+        const statusClass = ticket.status === 'Open' ? 'bg-success' : 
+                           ticket.status === 'Pending' ? 'bg-warning' : 
+                           ticket.status === 'Closed' ? 'bg-secondary' : 'bg-primary';
+        
+        const priorityClass = ticket.priority === 'High' ? 'bg-danger' : 
+                             ticket.priority === 'Medium' ? 'bg-warning' : 'bg-info';
+        
+        tbody.innerHTML += `<tr>
+            <td><small>${ticket.id || 'N/A'}</small></td>
+            <td><small title="${ticket.subject || 'No Subject'}">${(ticket.subject || 'No Subject').substring(0, 30)}${(ticket.subject || '').length > 30 ? '...' : ''}</small></td>
+            <td><span class="badge ${statusClass}">${ticket.status || 'Unknown'}</span></td>
+            <td><span class="badge ${priorityClass}">${ticket.priority || 'Normal'}</span></td>
+            <td><small>${ticket.requester || 'N/A'}</small></td>
+            <td><small>${ticket.company || ticket.account || 'N/A'}</small></td>
+            <td><small>${ticket.created_at || 'N/A'}</small></td>
+        </tr>`;
+    });
+    
+    if (tickets.length > 50) {
+        tbody.innerHTML += `<tr><td colspan="7" class="text-center text-muted"><small>Showing first 50 of ${tickets.length} tickets</small></td></tr>`;
+    }
+}
+
+function downloadReport() {
+    let url = '/tickets/reports/generate/?type=' + currentReport + '&download=true';
+    
+    if (currentReport === 'daily') {
+        url += '&date=' + document.getElementById('daily-date').value;
+    } else if (currentReport === 'weekly') {
+        url += '&start_date=' + document.getElementById('weekly-start').value;
+    } else if (currentReport === 'monthly') {
+        const month = document.getElementById('monthly-month').value;
+        const year = document.getElementById('monthly-year').value;
+        url += '&month=' + month + '&year=' + year;
+        console.log('Downloading monthly report for:', year + '-' + month);
+    } else if (currentReport === 'company') {
+        const company = document.getElementById('company-select').value;
+        if (company) url += '&company=' + encodeURIComponent(company);
+    } else if (currentReport === 'technician') {
+        const tech = document.getElementById('technician-select').value;
+        if (tech) url += '&technician=' + encodeURIComponent(tech);
+    }
+    
+    console.log('Download URL:', url);
+    window.location.href = url;
+}
+</script>

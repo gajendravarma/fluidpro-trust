@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}MDM Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <!-- ── Header ── -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="fas fa-mobile-alt me-2 text-primary"></i>Mobile Device Management
+      </h4>
+      <small class="text-muted">Live device overview for your organisation</small>
+    </div>
+    <a href="{% url 'mdm:device_list' %}" class="btn btn-primary btn-sm">
+      <i class="fas fa-th-list me-1"></i>View All Devices
+    </a>
+  </div>
+
+  <!-- ── Stat Cards (clickable) ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;">
+
+    <!-- Total -->
+    <a href="{% url 'mdm:device_list' %}" style="text-decoration:none;">
+      <div style="background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;transition:box-shadow .15s,transform .15s;"
+           onmouseover="this.style.boxShadow='0 6px 20px rgba(76,110,245,.2)';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)';this.style.transform=''">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(76,110,245,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-mobile-alt" style="color:#4c6ef5;font-size:1.2rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:700;color:#4c6ef5;line-height:1.1;">{{ total_devices }}</div>
+          <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Total Devices</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- Active -->
+    <a href="{% url 'mdm:device_list' %}?status=active" style="text-decoration:none;">
+      <div style="background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;transition:box-shadow .15s,transform .15s;"
+           onmouseover="this.style.boxShadow='0 6px 20px rgba(25,135,84,.2)';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)';this.style.transform=''">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(25,135,84,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-check-circle" style="color:#198754;font-size:1.2rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:700;color:#198754;line-height:1.1;">{{ active_devices }}</div>
+          <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Active / Enrolled</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- Pending -->
+    <a href="{% url 'mdm:device_list' %}?status=enrollment_pending" style="text-decoration:none;">
+      <div style="background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;transition:box-shadow .15s,transform .15s;"
+           onmouseover="this.style.boxShadow='0 6px 20px rgba(255,193,7,.2)';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)';this.style.transform=''">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(255,193,7,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-hourglass-half" style="color:#c9921a;font-size:1.2rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:700;color:#c9921a;line-height:1.1;">{{ pending_devices }}</div>
+          <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Pending Enrollment</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- Retired -->
+    <a href="{% url 'mdm:device_list' %}?status=retired" style="text-decoration:none;">
+      <div style="background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;transition:box-shadow .15s,transform .15s;"
+           onmouseover="this.style.boxShadow='0 6px 20px rgba(220,53,69,.2)';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.boxShadow='0 1px 6px rgba(0,0,0,.08)';this.style.transform=''">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(220,53,69,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-ban" style="color:#dc3545;font-size:1.2rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:700;color:#dc3545;line-height:1.1;">{{ retired_devices }}</div>
+          <div style="font-size:0.75rem;color:#6c757d;margin-top:2px;">Retired</div>
+        </div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- ── Quick Actions + Recent Devices ── -->
+  <div class="row g-3">
+
+    <!-- Quick Actions -->
+    <div class="col-md-4">
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px;">
+        <h6 class="fw-bold mb-3" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
+          <i class="fas fa-bolt me-1 text-warning"></i>Quick Actions
+        </h6>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="{% url 'mdm:device_list' %}"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#f0f4ff';this.style.borderColor='#4c6ef5'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-th-list" style="color:#4c6ef5;width:16px;text-align:center;"></i>All Devices
+          </a>
+          <a href="{% url 'mdm:device_list' %}?status=active"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#f0fff8';this.style.borderColor='#198754'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-check-circle" style="color:#198754;width:16px;text-align:center;"></i>Active Devices
+          </a>
+          {% if user_role in 'admin,technician' %}
+          <a href="{% url 'mdm:customer_list' %}"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#fff8f0';this.style.borderColor='#fd7e14'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-users" style="color:#fd7e14;width:16px;text-align:center;"></i>Manage Customers
+          </a>
+          <a href="{% url 'mdm:app_policies' %}"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#fdf0ff';this.style.borderColor='#6f42c1'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-shield-alt" style="color:#6f42c1;width:16px;text-align:center;"></i>App Policies
+          </a>
+          <a href="{% url 'mdm:profiles_list' %}"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#f0fbff';this.style.borderColor='#0dcaf0'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-file-alt" style="color:#0dcaf0;width:16px;text-align:center;"></i>Device Profiles
+          </a>
+          {% endif %}
+          <a href="{% url 'mdm:security_report' %}"
+             style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #e9ecef;text-decoration:none;color:#212529;font-size:0.84rem;font-weight:500;transition:all .15s;"
+             onmouseover="this.style.background='#fff0f3';this.style.borderColor='#dc3545'" onmouseout="this.style.background='';this.style.borderColor='#e9ecef'">
+            <i class="fas fa-exclamation-triangle" style="color:#dc3545;width:16px;text-align:center;"></i>Security Events
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recently Seen Devices -->
+    <div class="col-md-8">
+      <div style="background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-bold mb-0" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
+            <i class="fas fa-clock me-1 text-primary"></i>Recently Active Devices
+          </h6>
+          <a href="{% url 'mdm:device_list' %}?status=active" style="font-size:0.78rem;color:#4c6ef5;text-decoration:none;">View all →</a>
+        </div>
+
+        {% if recent_devices %}
+        <div style="display:flex;flex-direction:column;gap:0;">
+          {% for device in recent_devices %}
+          <a href="{% url 'mdm:device_detail' device.id %}"
+             style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f3f5;text-decoration:none;color:#212529;transition:background .1s;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+                {% if device.device_type == 'android' %}background:rgba(25,135,84,.12);
+                {% elif device.device_type == 'ios' %}background:rgba(33,37,41,.08);
+                {% elif device.device_type == 'windows' %}background:rgba(76,110,245,.12);
+                {% else %}background:rgba(108,117,125,.08);{% endif %}">
+                {% if device.device_type == 'android' %}<i class="fab fa-android" style="color:#198754;"></i>
+                {% elif device.device_type == 'ios' %}<i class="fab fa-apple" style="color:#212529;"></i>
+                {% elif device.device_type == 'windows' %}<i class="fab fa-windows" style="color:#4c6ef5;"></i>
+                {% else %}<i class="fas fa-mobile-alt" style="color:#6c757d;"></i>{% endif %}
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:0.85rem;">{{ device.device_name }}</div>
+                <div style="font-size:0.72rem;color:#6c757d;">
+                  {{ device.customer_name }}
+                  {% if device.username %} · {{ device.username }}{% endif %}
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <span style="display:inline-block;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:600;
+                {% if device.status == 'active' %}background:rgba(25,135,84,.12);color:#198754;
+                {% elif device.status == 'retired' %}background:rgba(220,53,69,.12);color:#dc3545;
+                {% else %}background:rgba(108,117,125,.1);color:#6c757d;{% endif %}">
+                {{ device.status_display }}
+              </span>
+              {% if device.last_contact_time %}
+              <div style="font-size:0.7rem;color:#6c757d;margin-top:3px;">{{ device.last_contact_time|timesince }} ago</div>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:2rem 0;color:#6c757d;">
+          <i class="fas fa-mobile-alt fa-2x mb-2 d-block" style="opacity:.3;"></i>
+          <small>No recent device activity</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

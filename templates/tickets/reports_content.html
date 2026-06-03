@@ -1,0 +1,1533 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="fas fa-chart-bar text-primary me-2"></i>Reports
+      {% if user_company %}<small class="text-muted fs-6 ms-2">— {{ user_company }}</small>{% endif %}
+    </h4>
+    <!-- Export buttons — visible for the active tab -->
+    <div class="d-flex gap-2" id="export-btns">
+      {% if has_manageengine %}
+      <a href="{% url 'export_manageengine_csv' %}" id="btn-export-me"
+         class="btn btn-outline-primary btn-sm" title="Export ManageEngine tickets to CSV">
+        <i class="fas fa-download me-1"></i>Export Tickets
+      </a>
+      {% endif %}
+      {% if has_pulseway %}
+      <a href="{% url 'export_pulseway_csv' %}" id="btn-export-pw"
+         class="btn btn-outline-success btn-sm" style="display:none;" title="Export Pulseway devices to CSV">
+        <i class="fas fa-download me-1"></i>Export Devices
+      </a>
+      {% endif %}
+      {% if has_mdm %}
+      <a href="{% url 'export_mdm_csv' %}" id="btn-export-mdm"
+         class="btn btn-outline-warning btn-sm" style="display:none;" title="Export MDM devices to CSV">
+        <i class="fas fa-download me-1"></i>Export MDM
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not has_manageengine and not has_pulseway and not has_mdm and not has_office365 %}
+  <div class="alert alert-warning">
+    <i class="fas fa-lock me-2"></i>You do not have access to any report modules. Please contact your administrator.
+  </div>
+  {% else %}
+
+  <!-- Dynamic tabs — one per accessible module -->
+  <ul class="nav nav-tabs mb-3" id="reportTabs">
+    {% if has_manageengine %}
+    <li class="nav-item">
+      <a class="nav-link {% if has_manageengine %}active{% endif %}" id="tab-me" href="#"
+         onclick="switchTab('manageengine'); return false;">
+        <i class="fas fa-ticket-alt me-1 text-primary"></i>ManageEngine Tickets
+      </a>
+    </li>
+    {% endif %}
+    {% if has_pulseway %}
+    <li class="nav-item">
+      <a class="nav-link {% if not has_manageengine %}active{% endif %}" id="tab-pw" href="#"
+         onclick="switchTab('pulseway'); return false;">
+        <i class="fas fa-desktop me-1 text-success"></i>Pulseway — Devices
+      </a>
+    </li>
+    {% endif %}
+    {% if has_mdm %}
+    <li class="nav-item">
+      <a class="nav-link {% if not has_manageengine and not has_pulseway %}active{% endif %}" id="tab-mdm" href="#"
+         onclick="switchTab('mdm'); return false;">
+        <i class="fas fa-mobile-alt me-1 text-warning"></i>Mobile Devices
+      </a>
+    </li>
+    {% endif %}
+    {% if has_office365 %}
+    <li class="nav-item">
+      <a class="nav-link {% if not has_manageengine and not has_pulseway and not has_mdm %}active{% endif %}" id="tab-o365" href="#"
+         onclick="switchTab('o365'); return false;">
+        <i class="fab fa-microsoft me-1 text-info"></i>Office 365
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       MANAGEENGINE SECTION
+  ═══════════════════════════════════════════════════════════════════ -->
+  {% if has_manageengine %}
+  <div id="section-manageengine">
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Report Type</label>
+        <select class="form-select form-select-sm" id="report-type-select">
+          <option value="daily">📅 Daily Report</option>
+          <option value="weekly">📊 Weekly Report</option>
+          <option value="monthly">📈 Monthly Report</option>
+          {% if user_role != 'customer' %}
+          <option value="company">🏢 By Company</option>
+          {% endif %}
+          <option value="technician">👨‍💻 By Technician</option>
+        </select>
+      </div>
+      <div class="col-md-6" id="params-container"></div>
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        <button class="btn btn-primary btn-sm" onclick="generateReport()">
+          <i class="fas fa-chart-line me-1"></i>Generate Report
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="downloadReport()">
+          <i class="fas fa-download me-1"></i>Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div id="loading" class="text-center py-3" style="display:none;">
+      <div class="spinner-border text-primary" role="status"></div>
+      <div class="mt-2 text-muted small" id="loading-text">Loading report data…</div>
+    </div>
+    <div id="error-message" class="alert alert-warning mb-2" style="display:none;">
+      <i class="fas fa-exclamation-triangle me-2"></i><span id="error-text">No data found.</span>
+    </div>
+
+    <div id="report-results" style="display:none;">
+
+      <!-- Summary Cards — 7 statuses including Resolved -->
+      <div class="row g-2 mb-4">
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #0d6efd!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-primary fw-bold" id="total-tickets">0</div>
+              <div class="small text-muted mt-1">Total Tickets</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #198754!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-success fw-bold" id="open-tickets">0</div>
+              <div class="small text-muted mt-1">Open</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #ffc107!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-warning fw-bold" id="pending-tickets">0</div>
+              <div class="small text-muted mt-1">Pending</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #6f42c1!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 fw-bold" style="color:#6f42c1" id="resolved-tickets">0</div>
+              <div class="small text-muted mt-1">Resolved</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #0dcaf0!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-info fw-bold" id="closed-tickets">0</div>
+              <div class="small text-muted mt-1">Closed</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #dc3545!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-danger fw-bold" id="cancelled-tickets">0</div>
+              <div class="small text-muted mt-1">Cancelled</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md">
+          <div class="card border-0 shadow-sm text-center h-100" style="border-left:4px solid #6c757d!important">
+            <div class="card-body py-3">
+              <div class="h3 mb-0 text-secondary fw-bold" id="onhold-tickets">0</div>
+              <div class="small text-muted mt-1">On Hold</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-header py-2 bg-white border-bottom">
+              <h6 class="mb-0 fw-semibold"><i class="fas fa-chart-pie me-2 text-primary"></i>Ticket Status Breakdown</h6>
+            </div>
+            <div class="card-body p-2"><div id="statusChart"></div></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-header py-2 bg-white border-bottom">
+              <h6 class="mb-0 fw-semibold"><i class="fas fa-layer-group me-2 text-warning"></i>Priority Distribution</h6>
+            </div>
+            <div class="card-body p-2"><div id="priorityChart"></div></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-header py-2 bg-white border-bottom">
+              <h6 class="mb-0 fw-semibold"><i class="fas fa-chart-line me-2 text-success"></i>Daily Ticket Trend</h6>
+            </div>
+            <div class="card-body p-2"><div id="trendChart"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ticket Table -->
+      <div class="card shadow-sm">
+        <div class="card-header py-2 bg-white border-bottom d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-semibold"><i class="fas fa-list me-2 text-secondary"></i>Ticket Details</h6>
+          <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">Rows:</small>
+            <select class="form-select form-select-sm" id="page-size-select" style="width:70px;" onchange="changePageSize()">
+              <option value="25" selected>25</option><option value="50">50</option><option value="100">100</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body p-1">
+          <small class="text-muted ms-2" id="pagination-info"></small>
+          <div class="table-responsive mt-1">
+            <table class="table table-sm table-hover mb-0" id="tickets-table">
+              <thead class="table-dark">
+                <tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Company</th><th>Created</th></tr>
+              </thead>
+              <tbody id="tickets-tbody"></tbody>
+            </table>
+          </div>
+          <div id="pagination-controls" class="d-flex justify-content-center align-items-center gap-1 mt-2 pb-1"></div>
+        </div>
+      </div>
+
+    </div><!-- /report-results -->
+  </div><!-- /section-manageengine -->
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PULSEWAY SECTION
+  ═══════════════════════════════════════════════════════════════════ -->
+  {% if has_pulseway %}
+  <div id="section-pulseway" {% if has_manageengine %}style="display:none;"{% endif %}>
+
+    {% if pulseway_stats %}
+
+    <!-- Company filter bar (admin/tech only) -->
+    {% if is_admin_tech and pulseway_companies %}
+    <div class="d-flex align-items-center gap-2 mb-3 p-2 bg-light rounded">
+      <i class="fas fa-filter text-muted small"></i>
+      <span class="small fw-semibold text-muted">Filter by Company:</span>
+      <select id="pw-company-filter" class="form-select form-select-sm" style="max-width:260px;"
+              onchange="pwApplyCompanyFilter()">
+        <option value="">All Companies ({{ pulseway_devices|length }} devices)</option>
+        {% for co in pulseway_companies %}
+        <option value="{{ co|lower }}">{{ co }}</option>
+        {% endfor %}
+      </select>
+      <span class="small text-muted ms-2" id="pw-filter-label"></span>
+    </div>
+    {% endif %}
+
+    <!-- Stat cards — updated by JS when company filter changes -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #0d6efd!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-primary fw-bold" id="pw-stat-total">{{ pulseway_stats.total_devices }}</div>
+            <div class="small text-muted mt-1">Total Devices</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #198754!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-success fw-bold" id="pw-stat-online">{{ pulseway_stats.online_devices }}</div>
+            <div class="small text-muted mt-1">Online</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #dc3545!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-danger fw-bold" id="pw-stat-offline">{{ pulseway_stats.offline_devices }}</div>
+            <div class="small text-muted mt-1">Offline</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #ffc107!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-warning fw-bold" id="pw-stat-patches">{{ pulseway_stats.pending_patches }}</div>
+            <div class="small text-muted mt-1">Pending Patches</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-5">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-circle me-2 text-success"></i>Online vs Offline</h6>
+          </div>
+          <div class="card-body p-2"><div id="pw-status-chart"></div></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-laptop me-2 text-info"></i>OS Distribution</h6>
+          </div>
+          <div class="card-body p-2"><div id="pw-os-chart"></div></div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-shield-alt me-2 text-warning"></i>Patch Compliance</h6>
+          </div>
+          <div class="card-body p-2"><div id="pw-patch-chart"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header py-2 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <h6 class="mb-0 fw-semibold"><i class="fas fa-desktop me-2 text-primary"></i>Device Inventory
+            <span class="badge bg-secondary ms-1" id="pw-device-count">{{ pulseway_devices|length }}</span>
+          </h6>
+          <small class="text-muted" id="pw-page-info"></small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <input type="text" class="form-control form-control-sm" style="width:200px;"
+                 placeholder="Search devices…" oninput="pwSearch(this.value)" id="pw-search-input">
+          <select class="form-select form-select-sm" style="width:75px;" onchange="pwSetPageSize(this.value)">
+            <option value="20" selected>20</option><option value="50">50</option><option value="100">100</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="pw-device-table">
+            <thead class="table-dark">
+              <tr>
+                <th>Device Name</th>
+                {% if is_admin_tech %}<th>Company</th>{% endif %}
+                <th>Status</th><th>IP Address</th>
+                <th>Operating System</th><th>Uptime</th><th>Pending Patches</th><th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody id="pw-tbody">
+              {% for dev in pulseway_devices %}
+              <tr data-search="{{ dev.name|lower }} {{ dev.ip|lower }} {{ dev.os|lower }} {{ dev.status }}"
+                  data-company="{{ dev.company|lower }}">
+                <td><span class="fw-semibold">{{ dev.name }}</span></td>
+                {% if is_admin_tech %}
+                <td><small class="text-muted">{{ dev.company }}</small></td>
+                {% endif %}
+                <td>
+                  {% if dev.is_online %}
+                  <span class="badge bg-success"><i class="fas fa-circle me-1" style="font-size:.55em;"></i>Online</span>
+                  {% else %}
+                  <span class="badge bg-danger"><i class="fas fa-circle me-1" style="font-size:.55em;"></i>Offline</span>
+                  {% endif %}
+                </td>
+                <td><small class="text-muted">{{ dev.ip }}</small></td>
+                <td><small>{{ dev.os }}</small></td>
+                <td><small class="text-muted">{{ dev.uptime }}</small></td>
+                <td>
+                  {% if dev.patches > 0 %}<span class="badge bg-warning text-dark">{{ dev.patches }} pending</span>
+                  {% else %}<span class="badge bg-success">Up to date</span>{% endif %}
+                </td>
+                <td><small class="text-muted">{{ dev.last_seen }}</small></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="text-center text-muted py-4">No Pulseway device data available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="pw-pagination" class="d-flex justify-content-center align-items-center gap-1 py-2"></div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-sync-alt me-2"></i>
+      Pulseway device data is not available. The system syncs every 30 minutes.
+    </div>
+    {% endif %}
+
+  </div><!-- /section-pulseway -->
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       MDM SECTION
+  ═══════════════════════════════════════════════════════════════════ -->
+  {% if has_mdm %}
+  <div id="section-mdm" {% if has_manageengine or has_pulseway %}style="display:none;"{% endif %}>
+
+    {% if mdm_stats %}
+
+    <!-- Company filter bar (admin/tech only) -->
+    {% if is_admin_tech and mdm_companies %}
+    <div class="d-flex align-items-center gap-2 mb-3 p-2 bg-light rounded">
+      <i class="fas fa-filter text-muted small"></i>
+      <span class="small fw-semibold text-muted">Filter by Company:</span>
+      <select id="mdm-company-filter" class="form-select form-select-sm" style="max-width:260px;"
+              onchange="mdmApplyCompanyFilter()">
+        <option value="">All Companies ({{ mdm_devices|length }} devices)</option>
+        {% for co in mdm_companies %}
+        <option value="{{ co|lower }}">{{ co }}</option>
+        {% endfor %}
+      </select>
+      <span class="small text-muted ms-2" id="mdm-filter-label"></span>
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #0d6efd!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-primary fw-bold" id="mdm-stat-total">{{ mdm_stats.total }}</div>
+            <div class="small text-muted mt-1">Total Devices</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #198754!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-success fw-bold" id="mdm-stat-active">{{ mdm_stats.active }}</div>
+            <div class="small text-muted mt-1">Active / Managed</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #ffc107!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-warning fw-bold" id="mdm-stat-inactive">{{ mdm_stats.inactive }}</div>
+            <div class="small text-muted mt-1">Inactive</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #6c757d!important">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-secondary fw-bold" id="mdm-stat-retired">{{ mdm_stats.retired }}</div>
+            <div class="small text-muted mt-1">Retired</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-5">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-mobile-alt me-2 text-warning"></i>Device Type Breakdown</h6>
+          </div>
+          <div class="card-body p-2"><div id="mdm-type-chart"></div></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-check-circle me-2 text-success"></i>Managed vs Unmanaged</h6>
+          </div>
+          <div class="card-body p-2"><div id="mdm-status-chart"></div></div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+          <div class="card-header py-2 bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-lock me-2 text-info"></i>Encryption Status</h6>
+          </div>
+          <div class="card-body p-2"><div id="mdm-enc-chart"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header py-2 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <h6 class="mb-0 fw-semibold"><i class="fas fa-mobile-alt me-2 text-warning"></i>Mobile Device Inventory
+            <span class="badge bg-secondary ms-1" id="mdm-device-count">{{ mdm_devices|length }}</span>
+          </h6>
+          <small class="text-muted" id="mdm-page-info"></small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <input type="text" class="form-control form-control-sm" style="width:200px;"
+                 placeholder="Search devices…" oninput="mdmSearch(this.value)" id="mdm-search-input">
+          <select class="form-select form-select-sm" style="width:75px;" onchange="mdmSetPageSize(this.value)">
+            <option value="20" selected>20</option><option value="50">50</option><option value="100">100</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="mdm-device-table">
+            <thead class="table-dark">
+              <tr>
+                <th>Device Name</th>
+                {% if is_admin_tech %}<th>Company</th>{% endif %}
+                <th>Type</th><th>Model</th><th>OS Version</th>
+                <th>Status</th><th>User</th><th>Encrypted</th><th>Last Contact</th>
+              </tr>
+            </thead>
+            <tbody id="mdm-tbody">
+              {% for dev in mdm_devices %}
+              <tr data-search="{{ dev.name|lower }} {{ dev.type|lower }} {{ dev.model|lower }} {{ dev.user_email|lower }} {{ dev.status }}"
+                  data-company="{{ dev.company|default:''|lower }}">
+                <td><span class="fw-semibold">{{ dev.name }}</span></td>
+                {% if is_admin_tech %}
+                <td><small class="text-muted">{{ dev.company|default:'—' }}</small></td>
+                {% endif %}
+                <td>
+                  {% if 'ios' in dev.type|lower or 'iphone' in dev.type|lower %}
+                  <span class="badge bg-primary">{{ dev.type }}</span>
+                  {% elif 'android' in dev.type|lower %}
+                  <span class="badge bg-success">{{ dev.type }}</span>
+                  {% elif 'windows' in dev.type|lower %}
+                  <span class="badge bg-info text-dark">{{ dev.type }}</span>
+                  {% elif 'mac' in dev.type|lower %}
+                  <span class="badge bg-dark">{{ dev.type }}</span>
+                  {% else %}
+                  <span class="badge bg-secondary">{{ dev.type }}</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ dev.model }}</small></td>
+                <td><small>{{ dev.os_version }}</small></td>
+                <td>
+                  {% if dev.status == 'active' or dev.status == 'managed' %}
+                  <span class="badge bg-success">{{ dev.status|capfirst }}</span>
+                  {% elif dev.status == 'retired' %}
+                  <span class="badge bg-secondary">Retired</span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark">{{ dev.status|capfirst }}</span>
+                  {% endif %}
+                </td>
+                <td><small class="text-muted">{{ dev.user_email }}</small></td>
+                <td>
+                  {% if dev.encrypted %}
+                  <span class="badge bg-success"><i class="fas fa-lock me-1"></i>Yes</span>
+                  {% else %}
+                  <span class="badge bg-danger"><i class="fas fa-unlock me-1"></i>No</span>
+                  {% endif %}
+                </td>
+                <td><small class="text-muted">{{ dev.last_contact }}</small></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="9" class="text-center text-muted py-4">No mobile devices found for your company.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="mdm-pagination" class="d-flex justify-content-center align-items-center gap-1 py-2"></div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No Mobile Device Management data found for your company. Devices appear here once enrolled and synced.
+    </div>
+    {% endif %}
+
+  </div><!-- /section-mdm -->
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       OFFICE 365 SECTION
+  ═══════════════════════════════════════════════════════════════════ -->
+  {% if has_office365 %}
+  <div id="section-o365" {% if has_manageengine or has_pulseway or has_mdm %}style="display:none;"{% endif %}>
+
+    <!-- O365 header with export -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0 fw-semibold"><i class="fab fa-microsoft me-2 text-info"></i>Office 365 — License & User Report</h5>
+      <a href="{% url 'export_o365_users_csv' %}" id="btn-export-o365-users"
+         class="btn btn-outline-info btn-sm">
+        <i class="fas fa-download me-1"></i>Export User Details (CSV)
+      </a>
+    </div>
+
+    <!-- Tier summary cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #6c757d!important;">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-secondary fw-bold">{{ o365_breakdown.basic|default:0 }}</div>
+            <div class="small text-muted mt-1">Basic Licenses</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ o365_breakdown.basic_consumed|default:0 }} assigned</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #0d6efd!important;">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-primary fw-bold">{{ o365_breakdown.standard|default:0 }}</div>
+            <div class="small text-muted mt-1">Standard Licenses</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ o365_breakdown.standard_consumed|default:0 }} assigned</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #ffc107!important;">
+          <div class="card-body py-3">
+            <div class="h3 mb-0 text-warning fw-bold">{{ o365_breakdown.premium|default:0 }}</div>
+            <div class="small text-muted mt-1">Premium Licenses</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ o365_breakdown.premium_consumed|default:0 }} assigned</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center" style="border-left:4px solid #20c997!important;">
+          <div class="card-body py-3">
+            {% with total=o365_breakdown.basic|add:o365_breakdown.standard|add:o365_breakdown.premium|add:o365_breakdown.other consumed=o365_breakdown.basic_consumed|add:o365_breakdown.standard_consumed|add:o365_breakdown.premium_consumed|add:o365_breakdown.other_consumed %}
+            <div class="h3 mb-0 fw-bold" style="color:#20c997;">{{ total }}</div>
+            <div class="small text-muted mt-1">Total Purchased</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ consumed }} assigned</div>
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- License breakdown table -->
+    <div class="card shadow-sm">
+      <div class="card-header py-2 bg-white border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold"><i class="fab fa-microsoft me-2 text-info"></i>License Breakdown by SKU</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th class="ps-3">License Name</th>
+              <th>SKU</th>
+              <th>Tier</th>
+              <th class="text-center">Purchased</th>
+              <th class="text-center">Assigned</th>
+              <th class="text-center">Available</th>
+              <th>Usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sku in o365_license_summary %}
+            <tr>
+              <td class="ps-3 fw-semibold small">{{ sku.display_name }}
+                {% if sku.warning %}
+                <br><small class="text-warning"><i class="fas fa-sync-alt me-1"></i>+{{ sku.warning }} renewing</small>
+                {% endif %}
+              </td>
+              <td><small class="text-muted">{{ sku.sku_name }}</small></td>
+              <td>
+                {% if sku.tier == 'premium' %}<span class="badge bg-warning text-dark">Premium</span>
+                {% elif sku.tier == 'standard' %}<span class="badge bg-primary">Standard</span>
+                {% elif sku.tier == 'basic' %}<span class="badge bg-secondary">Basic</span>
+                {% else %}<span class="badge bg-light text-dark border">Add-on</span>{% endif %}
+              </td>
+              <td class="text-center fw-semibold">{{ sku.total }}</td>
+              <td class="text-center text-success fw-semibold">{{ sku.consumed }}</td>
+              <td class="text-center {% if sku.available == 0 %}text-danger{% else %}text-muted{% endif %}">{{ sku.available }}</td>
+              <td style="min-width:120px;">
+                <div class="progress" style="height:7px;border-radius:4px;">
+                  <div class="progress-bar {% if sku.usage_percent >= 90 %}bg-danger{% elif sku.usage_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}"
+                       style="width:{{ sku.usage_percent }}%"></div>
+                </div>
+                <small class="text-muted">{{ sku.usage_percent }}%</small>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-4">No Office 365 license data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- User License Table -->
+    <div class="card shadow-sm mt-4">
+      <div class="card-header py-2 bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-users me-2 text-info"></i>User License Details</h6>
+        <div class="d-flex gap-2 align-items-center">
+          <input type="text" id="o365UserSearch" placeholder="Search name, email, department…"
+                 class="form-control form-control-sm" style="width:240px;"
+                 oninput="o365SearchDebounce()">
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadO365Users(1)">
+            <i class="fas fa-sync-alt me-1"></i>Load / Refresh
+          </button>
+          <a href="{% url 'export_o365_users_csv' %}" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-file-csv me-1"></i>Export CSV
+          </a>
+        </div>
+      </div>
+
+      <!-- Loading / error state -->
+      <div id="o365UsersLoading" class="text-center py-4" style="display:none;">
+        <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+        <span class="text-muted small">Loading users from Office 365…</span>
+      </div>
+      <div id="o365UsersError" class="alert alert-warning m-3" style="display:none;"></div>
+
+      <!-- Table -->
+      <div id="o365UsersTableWrap" style="display:none;">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" style="font-size:0.84rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Name</th>
+                <th>Email (UPN)</th>
+                <th>Department</th>
+                <th>Job Title</th>
+                <th class="text-center">Status</th>
+                <th class="text-center">Type</th>
+                <th>Assigned Licenses</th>
+                <th>Last Sign-In</th>
+              </tr>
+            </thead>
+            <tbody id="o365UsersBody"></tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="font-size:0.82rem;">
+          <span class="text-muted" id="o365UsersMeta"></span>
+          <div class="d-flex gap-1" id="o365UsersPager"></div>
+        </div>
+      </div>
+
+      <!-- Placeholder before first load -->
+      <div id="o365UsersPlaceholder" class="text-center py-5 text-muted">
+        <i class="fab fa-microsoft fa-2x mb-2 d-block" style="color:#00a4ef;opacity:.5;"></i>
+        <small>Click <strong>Load / Refresh</strong> to fetch live user data from Office 365.</small>
+      </div>
+    </div>
+
+  </div><!-- /section-o365 -->
+
+  <script>
+  /* ── Office 365 user table ── */
+  let _o365Page = 1;
+  let _o365Search = '';
+  let _o365Timer = null;
+
+  function o365SearchDebounce() {
+    clearTimeout(_o365Timer);
+    _o365Timer = setTimeout(() => {
+      _o365Search = document.getElementById('o365UserSearch').value;
+      loadO365Users(1);
+    }, 400);
+  }
+
+  function loadO365Users(page) {
+    _o365Page = page || 1;
+    const loading   = document.getElementById('o365UsersLoading');
+    const errEl     = document.getElementById('o365UsersError');
+    const tableWrap = document.getElementById('o365UsersTableWrap');
+    const placeholder = document.getElementById('o365UsersPlaceholder');
+
+    loading.style.display  = '';
+    errEl.style.display    = 'none';
+    tableWrap.style.display = 'none';
+    placeholder.style.display = 'none';
+
+    const params = new URLSearchParams({ page: _o365Page });
+    if (_o365Search) params.set('search', _o365Search);
+
+    fetch(`{% url 'o365_users_api' %}?` + params.toString())
+      .then(r => r.json())
+      .then(data => {
+        loading.style.display = 'none';
+        if (data.error) {
+          errEl.textContent = 'Error: ' + data.error;
+          errEl.style.display = '';
+          return;
+        }
+        renderO365Users(data);
+        tableWrap.style.display = '';
+      })
+      .catch(err => {
+        loading.style.display = 'none';
+        errEl.textContent = 'Network error: ' + err.message;
+        errEl.style.display = '';
+      });
+  }
+
+  function renderO365Users(data) {
+    const tbody = document.getElementById('o365UsersBody');
+    tbody.innerHTML = '';
+
+    if (!data.users || data.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No users found.</td></tr>';
+    } else {
+      data.users.forEach(u => {
+        const enabled = u.account_enabled;
+        const statusBadge = enabled
+          ? '<span class="badge bg-success" style="font-size:.68rem;">Active</span>'
+          : '<span class="badge bg-danger" style="font-size:.68rem;">Disabled</span>';
+        const typeBadge = u.user_type === 'Guest'
+          ? '<span class="badge bg-warning text-dark" style="font-size:.68rem;">Guest</span>'
+          : '<span class="badge bg-light text-dark border" style="font-size:.68rem;">Member</span>';
+
+        // Colour-code each license pill
+        const licPills = (u.licenses || 'No License').split(', ').map(l => {
+          let cls = 'bg-secondary';
+          const ll = l.toLowerCase();
+          if (ll.includes('premium') || ll.includes('e5')) cls = 'bg-warning text-dark';
+          else if (ll.includes('standard') || ll.includes('e3') || ll.includes('business')) cls = 'bg-primary';
+          else if (ll.includes('basic') || ll.includes('e1')) cls = 'bg-info text-dark';
+          else if (l === 'No License') cls = 'bg-light text-muted border';
+          return `<span class="badge ${cls} me-1" style="font-size:.66rem;">${l}</span>`;
+        }).join('');
+
+        const lastSignIn = u.last_sign_in
+          ? u.last_sign_in.split('T')[0]
+          : '<span class="text-muted">—</span>';
+
+        tbody.innerHTML += `
+          <tr>
+            <td class="ps-3 fw-semibold">${u.display_name || '—'}</td>
+            <td style="color:#6c757d;font-size:0.78rem;">${u.upn || '—'}</td>
+            <td>${u.department || '<span class="text-muted">—</span>'}</td>
+            <td>${u.job_title || '<span class="text-muted">—</span>'}</td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-center">${typeBadge}</td>
+            <td>${licPills}</td>
+            <td style="font-size:0.78rem;">${lastSignIn}</td>
+          </tr>`;
+      });
+    }
+
+    // Meta
+    const start = (data.page - 1) * 25 + 1;
+    const end   = Math.min(data.page * 25, data.total);
+    document.getElementById('o365UsersMeta').textContent =
+      `Showing ${start}–${end} of ${data.total} user${data.total !== 1 ? 's' : ''}`;
+
+    // Pager
+    const pager = document.getElementById('o365UsersPager');
+    pager.innerHTML = '';
+    const btnStyle = 'padding:3px 9px;font-size:0.78rem;border:1.5px solid #dee2e6;border-radius:6px;background:#fff;cursor:pointer;';
+    const btnActive = 'padding:3px 9px;font-size:0.78rem;border:1.5px solid #0dcaf0;border-radius:6px;background:#0dcaf0;color:#fff;font-weight:600;cursor:default;';
+
+    if (data.has_prev) {
+      pager.innerHTML += `<button style="${btnStyle}color:#0dcaf0;" onclick="loadO365Users(${data.page - 1})">‹ Prev</button>`;
+    }
+    // Show up to 5 page numbers around current
+    const start_p = Math.max(1, data.page - 2);
+    const end_p   = Math.min(data.total_pages, data.page + 2);
+    for (let p = start_p; p <= end_p; p++) {
+      pager.innerHTML += `<button style="${p === data.page ? btnActive : btnStyle + 'color:#0dcaf0;'}"
+        onclick="loadO365Users(${p})">${p}</button>`;
+    }
+    if (data.has_next) {
+      pager.innerHTML += `<button style="${btnStyle}color:#0dcaf0;" onclick="loadO365Users(${data.page + 1})">Next ›</button>`;
+    }
+  }
+  </script>
+
+  {% endif %}
+
+  {% endif %}{# /has any module #}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
+<script>
+// ─── TAB SWITCHING ─────────────────────────────────────────────────────────
+const SECTIONS = ['manageengine', 'pulseway', 'mdm', 'o365'];
+const TAB_IDS  = { manageengine:'tab-me', pulseway:'tab-pw', mdm:'tab-mdm', o365:'tab-o365' };
+const EXPORT_IDS = { manageengine:'btn-export-me', pulseway:'btn-export-pw', mdm:'btn-export-mdm', o365:'btn-export-o365-users' };
+
+function switchTab(active) {
+  SECTIONS.forEach(s => {
+    const el  = document.getElementById('section-' + s);
+    const tab = document.getElementById(TAB_IDS[s]);
+    if (el)  el.style.display = s === active ? '' : 'none';
+    if (tab) tab.classList.toggle('active', s === active);
+  });
+  // Show correct export button
+  Object.entries(EXPORT_IDS).forEach(([sec, btnId]) => {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.style.display = sec === active ? '' : 'none';
+  });
+
+  if (active === 'pulseway') renderPWCharts();
+  if (active === 'mdm')      renderMDMCharts();
+}
+
+// ─── PULSEWAY CHARTS ───────────────────────────────────────────────────────
+let pwChartsRendered = false;
+function renderPWCharts() {
+  if (pwChartsRendered) return;
+  pwChartsRendered = true;
+
+  const online  = {{ pulseway_stats.online_devices|default:0 }};
+  const offline = {{ pulseway_stats.offline_devices|default:0 }};
+  const upToDate = {{ pulseway_stats.up_to_date_patches|default:0 }};
+  const pending  = {{ pulseway_stats.total_devices|default:0 }} - upToDate;
+
+  if (document.getElementById('pw-status-chart') && (online + offline) > 0) {
+    new ApexCharts(document.getElementById('pw-status-chart'), {
+      series: [online, offline],
+      chart: { type: 'donut', height: 220 },
+      labels: ['Online', 'Offline'],
+      colors: ['#198754', '#dc3545'],
+      legend: { position: 'bottom', fontSize: '13px' },
+      dataLabels: { enabled: true, formatter: (v, { seriesIndex, w }) =>
+        `${w.config.labels[seriesIndex]}: ${w.config.series[seriesIndex]}` },
+      plotOptions: { pie: { donut: { labels: { show: true,
+        total: { show: true, label: 'Online', color: '#198754',
+          formatter: () => `${online} / ${online + offline}` }
+      }}}}
+    }).render();
+  }
+
+  const osData = {{ pulseway_os_dist|safe }};
+  if (document.getElementById('pw-os-chart')) {
+    const osL = Object.keys(osData), osV = Object.values(osData);
+    if (osL.length > 0) {
+      new ApexCharts(document.getElementById('pw-os-chart'), {
+        series: [{ name: 'Devices', data: osV }],
+        chart: { type: 'bar', height: 220 },
+        xaxis: { categories: osL },
+        colors: ['#0d6efd'],
+        plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
+        dataLabels: { enabled: true },
+        grid: { xaxis: { lines: { show: false } } }
+      }).render();
+    } else {
+      document.getElementById('pw-os-chart').innerHTML = '<p class="text-center text-muted p-4">No OS data available</p>';
+    }
+  }
+
+  if (document.getElementById('pw-patch-chart') && (upToDate + pending) > 0) {
+    new ApexCharts(document.getElementById('pw-patch-chart'), {
+      series: [upToDate, Math.max(0, pending)],
+      chart: { type: 'donut', height: 220 },
+      labels: ['Up to Date', 'Patches Pending'],
+      colors: ['#198754', '#ffc107'],
+      legend: { position: 'bottom', fontSize: '13px' },
+      dataLabels: { enabled: true }
+    }).render();
+  }
+}
+
+// ─── MDM CHARTS ────────────────────────────────────────────────────────────
+let mdmChartsRendered = false;
+function renderMDMCharts() {
+  if (mdmChartsRendered) return;
+  mdmChartsRendered = true;
+
+  const typeData = {{ mdm_type_dist|safe }};
+  if (document.getElementById('mdm-type-chart')) {
+    const tL = Object.keys(typeData), tV = Object.values(typeData);
+    if (tL.length > 0) {
+      new ApexCharts(document.getElementById('mdm-type-chart'), {
+        series: tV, chart: { type: 'donut', height: 220 },
+        labels: tL,
+        colors: ['#28a745','#007bff','#17a2b8','#6c757d'],
+        legend: { position: 'bottom', fontSize: '13px' },
+        dataLabels: { enabled: true }
+      }).render();
+    }
+  }
+
+  const active  = {{ mdm_stats.active|default:0 }};
+  const total   = {{ mdm_stats.total|default:0 }};
+  const retired = {{ mdm_stats.retired|default:0 }};
+  const other   = Math.max(0, total - active - retired);
+  if (document.getElementById('mdm-status-chart') && total > 0) {
+    new ApexCharts(document.getElementById('mdm-status-chart'), {
+      series: [active, other, retired],
+      chart: { type: 'donut', height: 220 },
+      labels: ['Active / Managed', 'Inactive / Pending', 'Retired'],
+      colors: ['#198754','#ffc107','#6c757d'],
+      legend: { position: 'bottom', fontSize: '13px' },
+      dataLabels: { enabled: true }
+    }).render();
+  }
+
+  // Encryption status from device list
+  let encYes = 0, encNo = 0;
+  {% for dev in mdm_devices %}
+  {% if dev.encrypted %}encYes++;{% else %}encNo++;{% endif %}
+  {% endfor %}
+  if (document.getElementById('mdm-enc-chart') && (encYes + encNo) > 0) {
+    new ApexCharts(document.getElementById('mdm-enc-chart'), {
+      series: [encYes, encNo],
+      chart: { type: 'donut', height: 220 },
+      labels: ['Encrypted', 'Not Encrypted'],
+      colors: ['#0dcaf0', '#dc3545'],
+      legend: { position: 'bottom', fontSize: '13px' },
+      dataLabels: { enabled: true }
+    }).render();
+  }
+}
+
+// Auto-render charts for the initially visible section
+document.addEventListener('DOMContentLoaded', () => {
+  {% if has_pulseway and not has_manageengine %}renderPWCharts();{% endif %}
+  {% if has_mdm and not has_manageengine and not has_pulseway %}renderMDMCharts();{% endif %}
+});
+
+// ─── GENERIC TABLE PAGINATOR ───────────────────────────────────────────────
+function TablePaginator(tbodyId, paginationId, infoId, pageSize) {
+  const tbody   = document.getElementById(tbodyId);
+  const pagDiv  = document.getElementById(paginationId);
+  const infoEl  = document.getElementById(infoId);
+  if (!tbody) return;
+
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  let filtered  = [...allRows];
+  let page      = 1;
+  let ps        = pageSize;
+
+  function render() {
+    const total = filtered.length;
+    const pages = Math.ceil(total / ps) || 1;
+    page = Math.max(1, Math.min(page, pages));
+    const start = (page - 1) * ps;
+    const end   = Math.min(start + ps, total);
+
+    allRows.forEach(r => r.style.display = 'none');
+    filtered.slice(start, end).forEach(r => r.style.display = '');
+
+    if (infoEl) infoEl.textContent = total > 0
+      ? `Showing ${start + 1}–${end} of ${total}`
+      : 'No results';
+
+    // Pagination buttons
+    if (!pagDiv) return;
+    if (pages <= 1) { pagDiv.innerHTML = ''; return; }
+    const d = 2, L = Math.max(1, page-d), R = Math.min(pages, page+d);
+    let h = `<button class="btn btn-outline-secondary btn-sm" onclick="this.getRootNode().getElementById&&void 0"
+      ${page===1?'disabled':''} onclick="pw_goPage_${tbodyId}(${page-1})">
+      <i class="fas fa-chevron-left"></i></button>`;
+    // simpler approach — build onclick strings
+    h = '';
+    const btnFn = `__pg_${tbodyId}`;
+    h += `<button class="btn btn-outline-secondary btn-sm" onclick="${btnFn}(${page-1})" ${page===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+    if (L > 1) { h += `<button class="btn btn-sm btn-outline-secondary" onclick="${btnFn}(1)">1</button>`; if(L>2) h+='<span class="px-1 text-muted">…</span>'; }
+    for (let p=L;p<=R;p++) h += `<button class="btn btn-sm ${p===page?'btn-primary':'btn-outline-secondary'}" onclick="${btnFn}(${p})">${p}</button>`;
+    if (R < pages) { if(R<pages-1) h+='<span class="px-1 text-muted">…</span>'; h+=`<button class="btn btn-sm btn-outline-secondary" onclick="${btnFn}(${pages})">${pages}</button>`; }
+    h += `<button class="btn btn-outline-secondary btn-sm" onclick="${btnFn}(${page+1})" ${page===pages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+    pagDiv.innerHTML = h;
+
+    // register global go-to-page function
+    window[btnFn] = function(p) { page = p; render(); };
+  }
+
+  this.search = function(q) {
+    q = q.toLowerCase().trim();
+    const base = allRows.filter(r => r.dataset.hidden !== '1');
+    filtered = q ? base.filter(r => (r.dataset.search||r.textContent).toLowerCase().includes(q)) : [...base];
+    page = 1; render();
+  };
+  this.setPageSize = function(n) { ps = parseInt(n); page = 1; render(); };
+  this.filterByAttribute = function(attr, val) {
+    // Re-derive filtered from all rows excluding those with data-{attr}={val} blocked
+    filtered = allRows.filter(r => r.dataset[attr] !== '1');
+    page = 1; render();
+  };
+
+  render();
+}
+
+// ─── PULSEWAY TABLE ─────────────────────────────────────────────────────────
+let pwPager, mdmPager;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('pw-tbody'))
+    pwPager  = new TablePaginator('pw-tbody',  'pw-pagination',  'pw-page-info',  20);
+  if (document.getElementById('mdm-tbody'))
+    mdmPager = new TablePaginator('mdm-tbody', 'mdm-pagination', 'mdm-page-info', 20);
+});
+
+function pwSearch(q)       { if (pwPager)  pwPager.search(q); }
+function pwSetPageSize(n)  { if (pwPager)  pwPager.setPageSize(n); }
+function mdmSearch(q)      { if (mdmPager) mdmPager.search(q); }
+function mdmSetPageSize(n) { if (mdmPager) mdmPager.setPageSize(n); }
+
+/* Company filter — hides/shows rows AND recalculates stat cards */
+function pwApplyCompanyFilter() {
+  const sel   = document.getElementById('pw-company-filter');
+  const co    = sel ? sel.value.toLowerCase() : '';
+  const rows  = document.querySelectorAll('#pw-tbody tr[data-company]');
+  let total = 0, online = 0, offline = 0, patches = 0;
+
+  rows.forEach(r => {
+    const match = !co || (r.dataset.company || '').toLowerCase().includes(co);
+    r.dataset.hidden = match ? '' : '1';
+    if (match) {
+      total++;
+      const badge = r.querySelector('.badge');
+      if (badge && badge.classList.contains('bg-success')) online++;
+      else offline++;
+      const pCell = r.cells[r.cells.length - 3]; // patches cell
+      const pNum  = pCell ? parseInt(pCell.textContent) || 0 : 0;
+      patches += pNum;
+    }
+  });
+
+  // Update stat cards
+  const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setEl('pw-stat-total',   total);
+  setEl('pw-stat-online',  online);
+  setEl('pw-stat-offline', offline);
+  setEl('pw-stat-patches', patches);
+  const cntEl = document.getElementById('pw-device-count');
+  if (cntEl) cntEl.textContent = total;
+
+  // Re-filter the paginator (filter out hidden rows)
+  if (pwPager) {
+    pwPager.filterByAttribute('hidden', '');
+    pwPager.search(document.getElementById('pw-search-input')?.value || '');
+  }
+
+  // Update label
+  const lbl = document.getElementById('pw-filter-label');
+  if (lbl) lbl.textContent = co ? `Showing ${total} device${total!==1?'s':''} for selected company` : '';
+}
+
+function mdmApplyCompanyFilter() {
+  const sel  = document.getElementById('mdm-company-filter');
+  const co   = sel ? sel.value.toLowerCase() : '';
+  const rows = document.querySelectorAll('#mdm-tbody tr[data-company]');
+  let total = 0, active = 0, inactive = 0, retired = 0;
+
+  rows.forEach(r => {
+    const match = !co || (r.dataset.company || '').toLowerCase().includes(co);
+    r.dataset.hidden = match ? '' : '1';
+    if (match) {
+      total++;
+      const badge = r.querySelector('td:nth-child({% if is_admin_tech %}6{% else %}5{% endif %}) .badge');
+      const txt   = badge ? badge.textContent.toLowerCase() : '';
+      if (txt.includes('active') || txt.includes('managed')) active++;
+      else if (txt.includes('retired')) retired++;
+      else inactive++;
+    }
+  });
+
+  const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setEl('mdm-stat-total',    total);
+  setEl('mdm-stat-active',   active);
+  setEl('mdm-stat-inactive', inactive);
+  setEl('mdm-stat-retired',  retired);
+  const cntEl = document.getElementById('mdm-device-count');
+  if (cntEl) cntEl.textContent = total;
+
+  if (mdmPager) {
+    mdmPager.filterByAttribute('hidden', '');
+    mdmPager.search(document.getElementById('mdm-search-input')?.value || '');
+  }
+
+  const lbl = document.getElementById('mdm-filter-label');
+  if (lbl) lbl.textContent = co ? `Showing ${total} device${total!==1?'s':''} for selected company` : '';
+}
+
+// ─── MANAGEENGINE REPORT LOGIC ─────────────────────────────────────────────
+{% if has_manageengine %}
+let statusChart, priorityChart, trendChart;
+let allTickets = [], currentPage = 1, pageSize = 25;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('report-type-select');
+  if (sel) {
+    showReportForm('daily');
+    sel.addEventListener('change', function() {
+      showReportForm(this.value);
+      const r = document.getElementById('report-results');
+      if (r) r.style.display = 'none';
+    });
+  }
+});
+
+function showReportForm(type) {
+  const c = document.getElementById('params-container');
+  if (!c) return;
+  if (type === 'daily') {
+    c.innerHTML = `<label class="form-label small fw-semibold">Date</label>
+      <input type="date" class="form-control form-control-sm" id="daily-date" value="${new Date().toISOString().split('T')[0]}">`;
+  } else if (type === 'weekly') {
+    const mon = new Date(); mon.setDate(mon.getDate() - mon.getDay() + 1);
+    c.innerHTML = `<label class="form-label small fw-semibold">Week Starting</label>
+      <input type="date" class="form-control form-control-sm" id="weekly-start" value="${mon.toISOString().split('T')[0]}">`;
+  } else if (type === 'monthly') {
+    const now = new Date(), m = now.getMonth()+1, y = now.getFullYear();
+    c.innerHTML = `<div class="row g-2">
+      <div class="col-6"><label class="form-label small fw-semibold">Month</label>
+        <select class="form-select form-select-sm" id="monthly-month">
+          ${['January','February','March','April','May','June','July','August','September','October','November','December']
+            .map((n,i)=>`<option value="${i+1}"${m===i+1?' selected':''}>${n}</option>`).join('')}
+        </select></div>
+      <div class="col-6"><label class="form-label small fw-semibold">Year</label>
+        <select class="form-select form-select-sm" id="monthly-year">
+          <option value="2024"${y===2024?' selected':''}>2024</option>
+          <option value="2025"${y===2025?' selected':''}>2025</option>
+          <option value="2026"${y===2026?' selected':''}>2026</option>
+        </select></div></div>`;
+  } else if (type === 'company') {
+    c.innerHTML = `<div class="row g-2">
+      <div class="col-6"><label class="form-label small fw-semibold">Company</label>
+        <select class="form-select form-select-sm" id="company-select"><option value="">Loading…</option></select></div>
+      <div class="col-3"><label class="form-label small fw-semibold">From</label>
+        <input type="date" class="form-control form-control-sm" id="company-start"></div>
+      <div class="col-3"><label class="form-label small fw-semibold">To</label>
+        <input type="date" class="form-control form-control-sm" id="company-end"></div></div>`;
+    fetch('/tickets/reports/companies/').then(r=>r.json()).then(list => {
+      const s = document.getElementById('company-select');
+      s.innerHTML = '<option value="">All Companies</option>' + list.map(c=>`<option>${c}</option>`).join('');
+    }).catch(() => { document.getElementById('company-select').innerHTML = '<option>Error loading</option>'; });
+  } else if (type === 'technician') {
+    c.innerHTML = `<div class="row g-2">
+      <div class="col-6"><label class="form-label small fw-semibold">Technician</label>
+        <select class="form-select form-select-sm" id="technician-select"><option value="">Loading…</option></select></div>
+      <div class="col-3"><label class="form-label small fw-semibold">From</label>
+        <input type="date" class="form-control form-control-sm" id="technician-start"></div>
+      <div class="col-3"><label class="form-label small fw-semibold">To</label>
+        <input type="date" class="form-control form-control-sm" id="technician-end"></div></div>`;
+    fetch('/tickets/reports/technicians/').then(r=>r.json()).then(list => {
+      const s = document.getElementById('technician-select');
+      s.innerHTML = '<option value="">All Technicians</option>' + list.map(t=>`<option>${t}</option>`).join('');
+    }).catch(() => { document.getElementById('technician-select').innerHTML = '<option>Error loading</option>'; });
+  }
+}
+
+function generateReport() {
+  const type = document.getElementById('report-type-select').value;
+  let url = '/tickets/reports/simple/?type=' + type;
+
+  if (type === 'daily') {
+    const d = document.getElementById('daily-date')?.value;
+    if (!d) { alert('Please select a date'); return; }
+    url += '&date=' + d;
+  } else if (type === 'weekly') {
+    const s = document.getElementById('weekly-start')?.value;
+    if (!s) { alert('Please select week start date'); return; }
+    url += '&start_date=' + s;
+  } else if (type === 'monthly') {
+    const m = document.getElementById('monthly-month')?.value;
+    const y = document.getElementById('monthly-year')?.value;
+    if (!m || !y) { alert('Please select month and year'); return; }
+    url += '&month=' + m + '&year=' + y;
+  } else if (type === 'company') {
+    const co = document.getElementById('company-select')?.value;
+    const s  = document.getElementById('company-start')?.value;
+    const e  = document.getElementById('company-end')?.value;
+    if (co) url += '&company=' + encodeURIComponent(co);
+    if (s)  url += '&start_date=' + s;
+    if (e)  url += '&end_date=' + e;
+  } else if (type === 'technician') {
+    const t = document.getElementById('technician-select')?.value;
+    const s = document.getElementById('technician-start')?.value;
+    const e = document.getElementById('technician-end')?.value;
+    if (t) url += '&technician=' + encodeURIComponent(t);
+    if (s) url += '&start_date=' + s;
+    if (e) url += '&end_date=' + e;
+  }
+
+  const loadingEl = document.getElementById('loading');
+  const resultsEl = document.getElementById('report-results');
+  const errorEl   = document.getElementById('error-message');
+  const loadTxt   = document.getElementById('loading-text');
+
+  if (loadingEl) { loadingEl.style.display = 'block'; }
+  if (loadTxt)   loadTxt.textContent = `Loading ${type} report data…`;
+  if (resultsEl) resultsEl.style.display = 'none';
+  if (errorEl)   errorEl.style.display   = 'none';
+
+  fetch(url, { headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (data && data.total_tickets >= 0) {
+        displayReport(data);
+        if (resultsEl) resultsEl.style.display = 'block';
+      } else {
+        const et = document.getElementById('error-text');
+        if (et) et.textContent = data.error || 'No data found for the selected period.';
+        if (errorEl) errorEl.style.display = 'block';
+      }
+    })
+    .catch(err => {
+      if (loadingEl) loadingEl.style.display = 'none';
+      const et = document.getElementById('error-text');
+      if (et) et.textContent = 'Request failed: ' + err.message;
+      if (errorEl) errorEl.style.display = 'block';
+    });
+}
+
+function displayReport(data) {
+  const sb = data.status_breakdown || {};
+
+  // Update the 7 known status cards (case-insensitive key lookup)
+  function sbGet(key) {
+    // exact match first, then case-insensitive
+    if (sb[key] !== undefined) return sb[key];
+    const kl = key.toLowerCase();
+    for (const [k, v] of Object.entries(sb)) {
+      if (k.toLowerCase() === kl) return v;
+    }
+    return 0;
+  }
+
+  document.getElementById('total-tickets').textContent     = data.total_tickets || 0;
+  document.getElementById('open-tickets').textContent      = sbGet('Open');
+  document.getElementById('pending-tickets').textContent   = sbGet('Pending');
+  document.getElementById('resolved-tickets').textContent  = sbGet('Resolved');
+  document.getElementById('closed-tickets').textContent    = sbGet('Closed');
+  document.getElementById('cancelled-tickets').textContent = sbGet('Cancelled');
+  document.getElementById('onhold-tickets').textContent    = sbGet('Onhold') || sbGet('On Hold');
+
+  if (statusChart)   statusChart.destroy();
+  if (priorityChart) priorityChart.destroy();
+  if (trendChart)    trendChart.destroy();
+  createStatusChart(sb);
+  createPriorityChart(data.priority_breakdown || {});
+  createTrendChart(data.daily_breakdown || {});
+  updateTable(data.tickets || []);
+}
+
+const STATUS_COLORS = {
+  Open: '#198754', Pending: '#ffc107', Resolved: '#6f42c1',
+  Closed: '#0dcaf0', Cancelled: '#dc3545', Onhold: '#6c757d'
+};
+
+function createStatusChart(d) {
+  const labels = Object.keys(d), values = Object.values(d);
+  if (!values.length || values.every(v=>v===0)) {
+    document.getElementById('statusChart').innerHTML = '<p class="text-center text-muted p-4">No ticket data for this period</p>'; return;
+  }
+  const colors = labels.map(l => STATUS_COLORS[l] || '#999');
+  statusChart = new ApexCharts(document.getElementById('statusChart'), {
+    series: values, chart: { type: 'donut', height: 240 },
+    labels: labels.map(l => `${l} (${d[l]})`),
+    colors: colors,
+    legend: { position: 'bottom', fontSize: '12px' },
+    dataLabels: { enabled: true, formatter: (v) => v.toFixed(1) + '%' },
+    plotOptions: { pie: { donut: { labels: { show: true,
+      total: { show: true, label: 'Total', formatter: () => values.reduce((a,b)=>a+b,0) }
+    }}}}
+  }); statusChart.render();
+}
+
+function createPriorityChart(d) {
+  const labels = Object.keys(d), values = Object.values(d);
+  if (!values.length || values.every(v=>v===0)) {
+    document.getElementById('priorityChart').innerHTML = '<p class="text-center text-muted p-4">No priority data available</p>'; return;
+  }
+  priorityChart = new ApexCharts(document.getElementById('priorityChart'), {
+    series: [{ name: 'Tickets', data: values }],
+    chart: { type: 'bar', height: 240 },
+    xaxis: { categories: labels },
+    colors: ['#0d6efd'],
+    plotOptions: { bar: { borderRadius: 4, distributed: true } },
+    dataLabels: { enabled: true },
+    legend: { show: false }
+  }); priorityChart.render();
+}
+
+function createTrendChart(d) {
+  const el = document.getElementById('trendChart');
+  if (!el) return;
+
+  const rawLabels = Object.keys(d);
+  const rawValues = Object.values(d);
+
+  // If no data at all, show empty state message instead of a blank chart
+  if (!rawLabels.length || rawValues.every(v => v === 0)) {
+    el.innerHTML = '<p class="text-center text-muted p-4">No ticket activity for this period</p>';
+    return;
+  }
+
+  // Format date labels to readable short form: "15 Apr"
+  const cats = rawLabels.map(l => {
+    const dt = new Date(l + 'T00:00:00');
+    return isNaN(dt) ? l : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  });
+
+  // Determine whether to show data labels (useful when <= 31 points)
+  const showLabels = rawValues.length <= 31;
+
+  trendChart = new ApexCharts(el, {
+    series: [{ name: 'Tickets Created', data: rawValues }],
+    chart: { type: 'area', height: 240, toolbar: { show: false }, animations: { enabled: true } },
+    xaxis: {
+      categories: cats,
+      labels: {
+        rotate: rawLabels.length > 14 ? -45 : 0,
+        style: { fontSize: '10px' },
+        // Show every Nth label to avoid crowding on monthly view
+        formatter: (val, i) => {
+          if (rawLabels.length > 14 && i % 3 !== 0) return '';
+          return val;
+        }
+      },
+      tickPlacement: 'on'
+    },
+    yaxis: {
+      min: 0,
+      forceNiceScale: true,
+      labels: { style: { fontSize: '11px' }, formatter: v => Math.round(v) }
+    },
+    colors: ['#198754'],
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.35, opacityTo: 0.02 } },
+    dataLabels: {
+      enabled: showLabels,
+      style: { fontSize: '10px', colors: ['#198754'] },
+      background: { enabled: false },
+      formatter: v => v > 0 ? v : ''
+    },
+    markers: { size: rawLabels.length <= 14 ? 4 : 0, colors: ['#198754'], strokeWidth: 0 },
+    tooltip: {
+      x: { formatter: (_, { dataPointIndex }) => rawLabels[dataPointIndex] || '' },
+      y: { formatter: v => `${v} ticket${v !== 1 ? 's' : ''}` }
+    },
+    grid: { padding: { top: 4, right: 8 } }
+  });
+  trendChart.render();
+}
+
+function updateTable(tickets) { allTickets = tickets || []; currentPage = 1; renderPage(); }
+
+function formatDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+const STATUS_BADGE = {
+  Open: 'success', Pending: 'warning', Resolved: 'purple',
+  Closed: 'info', Cancelled: 'danger', Onhold: 'secondary'
+};
+
+function renderPage() {
+  const tbody = document.getElementById('tickets-tbody');
+  if (!tbody) return;
+  if (!allTickets.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No tickets found for the selected criteria.</td></tr>';
+    document.getElementById('pagination-info').textContent = '';
+    document.getElementById('pagination-controls').innerHTML = '';
+    return;
+  }
+  const totalPages = Math.ceil(allTickets.length / pageSize);
+  const start = (currentPage-1)*pageSize, end = Math.min(start+pageSize, allTickets.length);
+  tbody.innerHTML = allTickets.slice(start,end).map(t => {
+    const id  = t.ticket_id || t.id || '—';
+    const sub = (t.subject || 'No Subject').substring(0, 60);
+    const st  = t.status?.name || t.status || 'Unknown';
+    const pr  = t.priority?.name || t.priority || 'Normal';
+    const req = t.requester_name || t.requester?.name || '—';
+    const co  = t.company_name || t.account?.name || '—';
+    const dt  = t.created_time?.value ? formatDate(t.created_time.value) : formatDate(t.created_at);
+    const stColor = st === 'Resolved' ? '#6f42c1' :
+      st === 'Open' ? '#198754' : st === 'Pending' ? '#856404' :
+      st === 'Closed' ? '#0dcaf0' : st === 'Cancelled' ? '#dc3545' : '#6c757d';
+    return `<tr>
+      <td><small class="text-muted">#${id}</small></td>
+      <td><small>${sub}</small></td>
+      <td><span class="badge" style="background:${stColor}">${st}</span></td>
+      <td><span class="badge bg-secondary">${pr}</span></td>
+      <td><small>${req}</small></td>
+      <td><small>${co}</small></td>
+      <td><small class="text-muted">${dt}</small></td></tr>`;
+  }).join('');
+  document.getElementById('pagination-info').textContent =
+    `Showing ${start+1}–${end} of ${allTickets.length} tickets`;
+  renderPaginationControls(totalPages);
+}
+
+function renderPaginationControls(n) {
+  const c = document.getElementById('pagination-controls');
+  if (n <= 1) { c.innerHTML = ''; return; }
+  const d = 2, l = Math.max(1,currentPage-d), r = Math.min(n,currentPage+d);
+  let h = `<button class="btn btn-outline-secondary btn-sm" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+  if (l>1) { h+=`<button class="btn btn-outline-secondary btn-sm" onclick="goToPage(1)">1</button>`; if(l>2) h+='<span class="px-1 text-muted">…</span>'; }
+  for (let p=l;p<=r;p++) h+=`<button class="btn btn-sm ${p===currentPage?'btn-primary':'btn-outline-secondary'}" onclick="goToPage(${p})">${p}</button>`;
+  if (r<n) { if(r<n-1) h+='<span class="px-1 text-muted">…</span>'; h+=`<button class="btn btn-outline-secondary btn-sm" onclick="goToPage(${n})">${n}</button>`; }
+  h += `<button class="btn btn-outline-secondary btn-sm" onclick="goToPage(${currentPage+1})" ${currentPage===n?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+  c.innerHTML = h;
+}
+
+function goToPage(p) {
+  if (p<1 || p>Math.ceil(allTickets.length/pageSize)) return;
+  currentPage=p; renderPage();
+  document.getElementById('tickets-table')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('page-size-select').value);
+  currentPage = 1; renderPage();
+}
+function downloadReport() {
+  const type = document.getElementById('report-type-select').value;
+  let url = '/tickets/reports/export/?report_type=' + type;
+
+  if (type === 'daily') {
+    const d = document.getElementById('daily-date')?.value;
+    if (d) url += '&start_date=' + d;
+    else { alert('Please select a date first.'); return; }
+
+  } else if (type === 'weekly') {
+    const s = document.getElementById('weekly-start')?.value;
+    if (s) url += '&start_date=' + s;
+    else { alert('Please select a week start date first.'); return; }
+
+  } else if (type === 'monthly') {
+    /* Send month + year as separate params — same as generateReport() */
+    const m = document.getElementById('monthly-month')?.value;
+    const y = document.getElementById('monthly-year')?.value;
+    if (m && y) { url += '&month=' + m + '&year=' + y; }
+    else { alert('Please select a month and year first.'); return; }
+
+  } else if (type === 'company') {
+    const co = document.getElementById('company-select')?.value;
+    const s  = document.getElementById('company-start')?.value;
+    const e  = document.getElementById('company-end')?.value;
+    if (co) url += '&company=' + encodeURIComponent(co);
+    if (s)  url += '&start_date=' + s;
+    if (e)  url += '&end_date=' + e;
+
+  } else if (type === 'technician') {
+    const t = document.getElementById('technician-select')?.value;
+    const s = document.getElementById('technician-start')?.value;
+    const e = document.getElementById('technician-end')?.value;
+    if (t) url += '&technician=' + encodeURIComponent(t);
+    if (s) url += '&start_date=' + s;
+    if (e) url += '&end_date=' + e;
+  }
+
+  window.open(url, '_blank');
+}
+{% endif %}
+</script>
+{% endblock %}

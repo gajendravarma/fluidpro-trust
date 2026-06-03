@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% block title %}{{ cust_name }} — Site24x7 Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item"><a href="{% url 'site24x7:site24x7_dashboard' %}">Site24x7</a></li>
+          <li class="breadcrumb-item active">{{ cust_name }}</li>
+        </ol>
+      </nav>
+      <h1 class="h3 mb-0 fw-bold">
+        <i class="fas fa-building text-primary me-2"></i>{{ cust_name }}
+      </h1>
+      <p class="text-muted mb-0 small">Availability &amp; Incident Report</p>
+    </div>
+    <!-- Period selector -->
+    <div class="d-flex gap-2 align-items-center">
+      <small class="text-muted">Period:</small>
+      {% for p_val, p_label in period_choices %}
+      <a href="?period={{ p_val }}"
+         class="btn btn-sm {% if period == p_val %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        {{ p_label }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>{{ error }}</div>
+  {% endif %}
+
+  <!-- Summary stat cards -->
+  {% if summary %}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-success border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Availability</div>
+          <div class="h3 fw-bold mb-0 text-success">{{ summary.availability_percentage|floatformat:2 }}%</div>
+          <div class="text-muted small">{{ summary.availability_duration }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-danger border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Downtime</div>
+          <div class="h3 fw-bold mb-0 text-danger">{{ summary.downtime_percentage|floatformat:2 }}%</div>
+          <div class="text-muted small">{{ summary.downtime_duration }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-warning border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Outages</div>
+          <div class="h3 fw-bold mb-0 text-warning">{{ summary.down_count }}</div>
+          <div class="text-muted small">MTTR: {{ summary.mttr }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm h-100 border-start border-info border-4">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase mb-1">Alarms</div>
+          <div class="h3 fw-bold mb-0">{{ summary.alarm_count }}</div>
+          <div class="text-muted small">MTBF: {{ summary.mtbf }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- Current Monitor Status -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-heartbeat me-2 text-danger"></i>Current Monitor Status
+          <span class="badge bg-secondary ms-1">{{ monitors|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if monitors %}
+          <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>Monitor</th>
+                  <th>Type</th>
+                  <th class="text-center">Status</th>
+                  <th>Last Polled</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in monitors %}
+                <tr>
+                  <td class="small fw-semibold">{{ m.name|default:"Unknown" }}</td>
+                  <td class="small text-muted">{{ m.monitor_type|default:"—" }}</td>
+                  <td class="text-center">
+                    {% if m.status == 1 %}<span class="badge bg-success">Up</span>
+                    {% elif m.status == 0 %}<span class="badge bg-danger">Down</span>
+                    {% elif m.status == 2 %}<span class="badge bg-warning text-dark">Trouble</span>
+                    {% elif m.status == 5 %}<span class="badge bg-secondary">Suspended</span>
+                    {% elif m.status == 7 %}<span class="badge bg-info text-dark">Maintenance</span>
+                    {% else %}<span class="badge bg-secondary">—</span>{% endif %}
+                  </td>
+                  <td class="small text-muted">{{ m.last_polled_time|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4"><i class="fas fa-desktop fa-2x mb-2 d-block"></i>No monitors</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitor Groups -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-layer-group me-2 text-info"></i>Monitor Groups
+          <span class="badge bg-secondary ms-1">{{ monitor_groups|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if monitor_groups %}
+          <div style="max-height:400px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top">
+                <tr><th>Group Name</th><th>Description</th><th class="text-center">Type</th></tr>
+              </thead>
+              <tbody>
+                {% for g in monitor_groups %}
+                <tr>
+                  <td class="small fw-semibold">{{ g.display_name|default:"—" }}</td>
+                  <td class="small text-muted">{{ g.description|default:"—" }}</td>
+                  <td class="text-center"><span class="badge bg-light text-dark border">{{ g.group_type }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4"><i class="fas fa-layer-group fa-2x mb-2 d-block"></i>No groups</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-Monitor Availability -->
+    {% if availability_details %}
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-chart-bar me-2 text-success"></i>Per-Monitor Availability ({{ report_info.period_name|default:"Period" }})
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Monitor</th>
+                  <th class="text-center">Availability %</th>
+                  <th class="text-center">Downtime %</th>
+                  <th>Downtime Duration</th>
+                  <th class="text-center">Outages</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in availability_details %}
+                <tr>
+                  <td class="small fw-semibold">{{ a.name|default:a.monitor_id }}</td>
+                  <td class="text-center">
+                    {% if a.availability_percentage >= 99 %}
+                      <span class="badge bg-success">{{ a.availability_percentage|floatformat:2 }}%</span>
+                    {% elif a.availability_percentage >= 95 %}
+                      <span class="badge bg-warning text-dark">{{ a.availability_percentage|floatformat:2 }}%</span>
+                    {% else %}
+                      <span class="badge bg-danger">{{ a.availability_percentage|floatformat:2 }}%</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center small text-danger">{{ a.downtime_percentage|floatformat:2 }}%</td>
+                  <td class="small text-muted">{{ a.downtime_duration|default:"—" }}</td>
+                  <td class="text-center">
+                    <span class="badge {% if a.down_details %}bg-danger{% else %}bg-success{% endif %}">
+                      {{ a.down_details|length }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Outage Details -->
+    {% if outages %}
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-exclamation-circle me-2 text-danger"></i>Outage Details
+          <span class="badge bg-danger ms-1">{{ outages|length }} monitors with outages</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Monitor</th>
+                  <th>Start Time</th>
+                  <th>End Time</th>
+                  <th>Duration</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for o in outages %}
+                  {% for evt in o.outages %}
+                  <tr>
+                    <td class="small fw-semibold">{{ o.display_name|default:o.monitor_id }}</td>
+                    <td class="small">{{ evt.start_time|default:"—" }}</td>
+                    <td class="small">{{ evt.end_time|default:"Ongoing" }}</td>
+                    <td class="small text-muted">{{ evt.duration|default:"—" }}</td>
+                    <td class="small text-muted">{{ evt.reason|default:"—" }}</td>
+                  </tr>
+                  {% endfor %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Alert Notification Log -->
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-bell me-2 text-warning"></i>Alert Notification Log
+          <span class="badge bg-secondary ms-1">{{ alert_logs|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if alert_logs %}
+          <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light sticky-top">
+                <tr><th>Time</th><th>Message</th><th>Contact</th></tr>
+              </thead>
+              <tbody>
+                {% for a in alert_logs %}
+                <tr>
+                  <td class="small text-muted text-nowrap">{{ a.sent_time|default:"—" }}</td>
+                  <td class="small">{{ a.msg|default:"—" }}</td>
+                  <td class="small text-muted">{{ a.contact|join:", " }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4"><i class="fas fa-bell-slash fa-2x mb-2 d-block"></i>No alerts in this period</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

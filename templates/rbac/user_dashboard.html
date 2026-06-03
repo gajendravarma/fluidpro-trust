@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Module Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Welcome, {{ user.username }}!</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Your Accessible Modules</h6>
+                </div>
+                <div class="card-body">
+                    {% if user_packages %}
+                        <div class="row">
+                            {% for package, permissions in user_packages %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card border-left-primary h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            {% if package.name == 'manageengine' %}
+                                                <i class="fas fa-ticket-alt text-primary"></i>
+                                            {% elif package.name == 'pulseway' %}
+                                                <i class="fas fa-desktop text-success"></i>
+                                            {% elif package.name == 'office365' %}
+                                                <i class="fab fa-microsoft text-info"></i>
+                                            {% elif package.name == 'datto' %}
+                                                <i class="fas fa-shield-alt text-warning"></i>
+                                            {% elif package.name == 'site24x7' %}
+                                                <i class="fas fa-chart-line text-danger"></i>
+                                            {% elif package.name == 'mdm' %}
+                                                <i class="fas fa-mobile-alt text-primary"></i>
+                                            {% endif %}
+                                            {{ package.display_name }}
+                                        </h5>
+                                        <p class="card-text">{{ package.description }}</p>
+                                        
+                                        <div class="mb-3">
+                                            <small class="text-muted">Your permissions:</small><br>
+                                            {% for permission in permissions %}
+                                                {% if permission == 'create' %}
+                                                    <span class="badge bg-success me-1">Create</span>
+                                                {% elif permission == 'read' %}
+                                                    <span class="badge bg-info me-1">Read</span>
+                                                {% elif permission == 'update' %}
+                                                    <span class="badge bg-warning me-1">Update</span>
+                                                {% elif permission == 'delete' %}
+                                                    <span class="badge bg-danger me-1">Delete</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <a href="{% if package.name == 'manageengine' %}/tickets/{% elif package.name == 'pulseway' %}/pulseway/{% elif package.name == 'office365' %}/office365/{% elif package.name == 'datto' %}/datto/{% elif package.name == 'site24x7' %}/site24x7/{% elif package.name == 'mdm' %}/mdm/{% else %}/{% endif %}" class="btn btn-primary">
+                                            Access {{ package.display_name }}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No modules assigned</h5>
+                            <p class="text-muted">Contact your administrator to get access to modules.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_superuser %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow border-left-warning">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Admin Access</h6>
+                </div>
+                <div class="card-body">
+                    <p>You have administrative privileges. Access the admin dashboard to manage user access.</p>
+                    <a href="{% url 'rbac:admin_dashboard' %}" class="btn btn-warning">
+                        <i class="fas fa-cog"></i> Admin Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

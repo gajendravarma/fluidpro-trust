@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-shield-halved text-primary me-2"></i>Admin Dashboard</h1>
+      <p class="text-muted mb-0 small">System overview — click any card to view details</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'rbac:manage_users' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-users me-1"></i>Manage Users
+      </a>
+      <a href="{% url 'rbac:manage_technician_access' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-user-shield me-1"></i>Tech Access
+      </a>
+    </div>
+  </div>
+
+  <!-- Stat cards row — each card opens a detail modal -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #4e73df!important;cursor:pointer;"
+           data-type="users" data-title="All Users" title="Click to view all users">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 text-primary fw-bold">{{ total_users }}</div>
+          <div class="small text-muted mt-1">Total Users</div>
+          <i class="fas fa-users text-primary opacity-25 mt-1" style="font-size:1.4rem;"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #e74a3b!important;cursor:pointer;"
+           data-type="admins" data-title="Admin Users" title="Click to view admins">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 fw-bold" style="color:#e74a3b;">{{ admin_count }}</div>
+          <div class="small text-muted mt-1">Admins</div>
+          <i class="fas fa-user-cog opacity-25 mt-1" style="font-size:1.4rem;color:#e74a3b;"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #f6c23e!important;cursor:pointer;"
+           data-type="technicians" data-title="Technicians" title="Click to view technicians">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 text-warning fw-bold">{{ tech_count }}</div>
+          <div class="small text-muted mt-1">Technicians</div>
+          <i class="fas fa-wrench text-warning opacity-25 mt-1" style="font-size:1.4rem;"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #1cc88a!important;cursor:pointer;"
+           data-type="customers" data-title="Customers" title="Click to view customers">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 text-success fw-bold">{{ customer_count }}</div>
+          <div class="small text-muted mt-1">Customers</div>
+          <i class="fas fa-building text-success opacity-25 mt-1" style="font-size:1.4rem;"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #36b9cc!important;cursor:pointer;"
+           data-type="companies" data-title="Companies" title="Click to view companies">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 text-info fw-bold">{{ total_companies }}</div>
+          <div class="small text-muted mt-1">Companies</div>
+          <i class="fas fa-sitemap text-info opacity-25 mt-1" style="font-size:1.4rem;"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+      <div class="card border-0 shadow-sm text-center h-100 stat-card" style="border-top:4px solid #858796!important;cursor:pointer;"
+           data-type="accesses" data-title="Active Accesses" title="Click to view all active accesses">
+        <div class="card-body py-3">
+          <div class="h2 mb-0 text-secondary fw-bold">{{ total_accesses }}</div>
+          <div class="small text-muted mt-1">Active Accesses</div>
+          <i class="fas fa-key text-secondary opacity-25 mt-1" style="font-size:1.4rem;"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <!-- Package Access Summary — each row is clickable -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom py-2">
+          <span class="fw-semibold"><i class="fas fa-box me-2 text-primary"></i>Package Access Summary</span>
+          <span class="text-muted small ms-2">— click a package to see its users</span>
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            {% for pkg in packages %}
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2 package-row"
+                style="cursor:pointer;"
+                data-type="package_{{ pkg.id }}" data-title="{{ pkg.display_name }} — Users">
+              <span class="fw-semibold small">
+                <i class="fas fa-chevron-right text-muted me-1" style="font-size:.65rem;"></i>
+                {{ pkg.display_name }}
+              </span>
+              <span class="badge bg-primary rounded-pill">{{ pkg.user_count }} user{{ pkg.user_count|pluralize }}</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted small py-3 text-center">No packages configured</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick actions grid -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white border-bottom py-2">
+          <span class="fw-semibold"><i class="fas fa-bolt me-2 text-warning"></i>Quick Actions</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <a href="{% url 'rbac:manage_users' %}" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10" style="width:48px;height:48px;"><i class="fas fa-users text-primary"></i></span></div>
+                    <div class="fw-semibold small">Manage Users</div>
+                    <div class="text-muted" style="font-size:.75rem;">Roles &amp; package access</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{% url 'rbac:manage_technician_access' %}" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10" style="width:48px;height:48px;"><i class="fas fa-user-shield text-warning"></i></span></div>
+                    <div class="fw-semibold small">Tech Company Access</div>
+                    <div class="text-muted" style="font-size:.75rem;">Restrict technician scope</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{% url 'rbac:user_license_dashboard' %}" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10" style="width:48px;height:48px;"><i class="fas fa-key text-success"></i></span></div>
+                    <div class="fw-semibold small">Manage Licenses</div>
+                    <div class="text-muted" style="font-size:.75rem;">Expiry &amp; renewal alerts</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{% url 'pulseway:sync_control' %}" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10" style="width:48px;height:48px;"><i class="fas fa-sync-alt text-info"></i></span></div>
+                    <div class="fw-semibold small">Pulseway Sync</div>
+                    <div class="text-muted" style="font-size:.75rem;">Device sync control panel</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="/admin/" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-secondary bg-opacity-10" style="width:48px;height:48px;"><i class="fas fa-cog text-secondary"></i></span></div>
+                    <div class="fw-semibold small">Django Admin</div>
+                    <div class="text-muted" style="font-size:.75rem;">Database &amp; model admin</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{% url 'pulseway:dashboard' %}" class="text-decoration-none">
+                <div class="card border h-100 action-card">
+                  <div class="card-body text-center py-3">
+                    <div class="mb-2"><span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(231,74,59,.1);"><i class="fas fa-desktop" style="color:#e74a3b;"></i></span></div>
+                    <div class="fw-semibold small">Pulseway</div>
+                    <div class="text-muted" style="font-size:.75rem;">Device monitoring</div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent assignments -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="fas fa-history me-2 text-secondary"></i>Recent Access Assignments</span>
+      <a href="{% url 'rbac:manage_users' %}" class="btn btn-outline-primary btn-sm">View All</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">User</th>
+            <th>Package</th>
+            <th>Permissions</th>
+            <th>Assigned By</th>
+            <th>Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in recent_assignments %}
+          <tr>
+            <td class="ps-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold" style="width:28px;height:28px;font-size:.75rem;">{{ a.user.username|first|upper }}</span>
+                <div>
+                  <div class="small fw-semibold">{{ a.user.username }}</div>
+                  <div class="text-muted" style="font-size:.7rem;">{{ a.user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge bg-primary bg-opacity-10 text-primary">{{ a.package.display_name }}</span></td>
+            <td>
+              {% if a.can_create %}<span class="badge bg-success me-1">C</span>{% endif %}
+              {% if a.can_read %}<span class="badge bg-info me-1">R</span>{% endif %}
+              {% if a.can_update %}<span class="badge bg-warning me-1">U</span>{% endif %}
+              {% if a.can_delete %}<span class="badge bg-danger me-1">D</span>{% endif %}
+            </td>
+            <td><small class="text-muted">{{ a.assigned_by.username|default:"System" }}</small></td>
+            <td><small class="text-muted">{{ a.assigned_at|date:"d M Y H:i" }}</small></td>
+            <td>
+              {% if a.is_enabled %}
+              <span class="badge bg-success-subtle text-success">Active</span>
+              {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No recent assignments</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== Detail Modal ===== -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-bottom py-3">
+        <div class="d-flex align-items-center gap-3">
+          <h5 class="modal-title mb-0 fw-bold" id="detailModalLabel">Details</h5>
+          <span class="badge bg-secondary rounded-pill" id="detailCount">—</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Search bar inside modal -->
+      <div class="modal-header border-0 pt-2 pb-0">
+        <div class="input-group input-group-sm w-50">
+          <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+          <input type="text" id="detailSearch" class="form-control border-start-0 bg-light" placeholder="Search…">
+        </div>
+      </div>
+
+      <div class="modal-body p-0">
+        <!-- Loading spinner -->
+        <div id="detailLoader" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="text-muted small mt-2">Loading…</div>
+        </div>
+
+        <!-- Table (hidden until loaded) -->
+        <div id="detailTableWrap" class="d-none">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-striped mb-0 align-middle">
+              <thead class="table-dark sticky-top" id="detailThead"></thead>
+              <tbody id="detailTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="detailEmpty" class="d-none text-center py-5 text-muted">
+          <i class="fas fa-inbox fa-2x mb-2 opacity-50"></i>
+          <div>No records found</div>
+        </div>
+      </div>
+
+      <!-- Pagination footer -->
+      <div class="modal-footer justify-content-between py-2">
+        <small class="text-muted" id="detailPageInfo">Page 1 of 1</small>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" id="btnPrev" disabled>
+            <i class="fas fa-chevron-left"></i> Prev
+          </button>
+          <button class="btn btn-outline-secondary" id="btnNext" disabled>
+            Next <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.action-card { transition: transform .15s, box-shadow .15s; cursor: pointer; }
+.action-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1)!important; border-color:#4e73df!important; }
+
+.stat-card { transition: transform .15s, box-shadow .15s; }
+.stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12)!important; }
+
+.package-row:hover { background: #f0f4ff; }
+
+#detailThead th { font-size: .78rem; white-space: nowrap; padding: .5rem .75rem; }
+#detailTbody td { font-size: .82rem; padding: .45rem .75rem; }
+.modal-title { font-size: 1rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  const API_URL = '{% url "rbac:admin_dashboard_detail_api" %}';
+
+  let currentType = '';
+  let currentPage = 1;
+  let searchTimer = null;
+
+  // ----- DOM refs -----
+  const modalEl    = document.getElementById('detailModal');
+  const modal      = new bootstrap.Modal(modalEl);
+  const modalLabel = document.getElementById('detailModalLabel');
+  const detailCount = document.getElementById('detailCount');
+  const searchInput = document.getElementById('detailSearch');
+  const loader     = document.getElementById('detailLoader');
+  const tableWrap  = document.getElementById('detailTableWrap');
+  const emptyState = document.getElementById('detailEmpty');
+  const thead      = document.getElementById('detailThead');
+  const tbody      = document.getElementById('detailTbody');
+  const pageInfo   = document.getElementById('detailPageInfo');
+  const btnPrev    = document.getElementById('btnPrev');
+  const btnNext    = document.getElementById('btnNext');
+
+  // ----- Open modal -----
+  function openDetail(type, title) {
+    currentType = type;
+    currentPage = 1;
+    modalLabel.textContent = title;
+    searchInput.value = '';
+    modal.show();
+    loadPage();
+  }
+
+  // ----- Load a page of data -----
+  function loadPage() {
+    showLoader();
+    const params = new URLSearchParams({
+      type:   currentType,
+      page:   currentPage,
+      search: searchInput.value.trim(),
+    });
+
+    fetch(`${API_URL}?${params}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { showEmpty(); return; }
+
+      thead.innerHTML = '<tr>' + data.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+
+      tbody.innerHTML = '';
+      if (!data.rows || data.rows.length === 0) { showEmpty(); return; }
+
+      data.rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('');
+        tbody.appendChild(tr);
+      });
+
+      detailCount.textContent = `${data.total_count} record${data.total_count !== 1 ? 's' : ''}`;
+      pageInfo.textContent    = `Page ${data.page} of ${data.total_pages}`;
+      btnPrev.disabled        = !data.has_previous;
+      btnNext.disabled        = !data.has_next;
+
+      showTable();
+    })
+    .catch(() => showEmpty());
+  }
+
+  function showLoader() {
+    loader.classList.remove('d-none');
+    tableWrap.classList.add('d-none');
+    emptyState.classList.add('d-none');
+  }
+  function showTable() {
+    loader.classList.add('d-none');
+    tableWrap.classList.remove('d-none');
+    emptyState.classList.add('d-none');
+  }
+  function showEmpty() {
+    loader.classList.add('d-none');
+    tableWrap.classList.add('d-none');
+    emptyState.classList.remove('d-none');
+    detailCount.textContent = '0 records';
+    pageInfo.textContent    = 'Page 1 of 1';
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '—';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ----- Bind stat cards -----
+  document.querySelectorAll('.stat-card').forEach(card => {
+    card.addEventListener('click', () => openDetail(card.dataset.type, card.dataset.title));
+  });
+
+  // ----- Bind package rows -----
+  document.querySelectorAll('.package-row').forEach(row => {
+    row.addEventListener('click', () => openDetail(row.dataset.type, row.dataset.title));
+  });
+
+  // ----- Pagination -----
+  btnPrev.addEventListener('click', () => { currentPage--; loadPage(); });
+  btnNext.addEventListener('click', () => { currentPage++; loadPage(); });
+
+  // ----- Search with debounce -----
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { currentPage = 1; loadPage(); }, 350);
+  });
+});
+</script>
+{% endblock %}

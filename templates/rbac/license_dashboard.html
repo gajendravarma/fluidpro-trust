@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}License Dashboard{% endblock %}
+
+{% block content %}
+<style>
+.navbar { display: none !important; }
+</style>
+<div class="container mt-4">
+    <h2 class="mb-4">License Dashboard - All Services</h2>
+    
+    <div class="row">
+        <!-- ManageEngine License -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">ManageEngine ServiceDesk</h5>
+                </div>
+                <div class="card-body">
+                    {% if licenses.manageengine.error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ licenses.manageengine.error }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6>License Type: <span class="badge bg-info">{{ licenses.manageengine.license_type }}</span></h6>
+                            <small class="text-muted">Expires: {{ licenses.manageengine.expiry_date }}</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h3 class="text-primary">{{ licenses.manageengine.total }}</h3>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-success">{{ licenses.manageengine.used }}</h3>
+                                <small>Used</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-warning">{{ licenses.manageengine.available }}</h3>
+                                <small>Available</small>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {% if licenses.manageengine.percentage > 80 %}bg-danger{% elif licenses.manageengine.percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ licenses.manageengine.percentage }}%">
+                                {{ licenses.manageengine.percentage }}%
+                            </div>
+                        </div>
+                        
+                        {% if licenses.manageengine.percentage > 80 %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <strong>Warning:</strong> License usage is above 80%!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pulseway License -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Pulseway RMM</h5>
+                </div>
+                <div class="card-body">
+                    {% if licenses.pulseway.error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ licenses.pulseway.error }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6>License Type: <span class="badge bg-info">{{ licenses.pulseway.license_type }}</span></h6>
+                            <small class="text-muted">Expires: {{ licenses.pulseway.expiry_date }}</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h3 class="text-primary">{{ licenses.pulseway.total }}</h3>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-success">{{ licenses.pulseway.used }}</h3>
+                                <small>Used</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-warning">{{ licenses.pulseway.available }}</h3>
+                                <small>Available</small>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {% if licenses.pulseway.percentage > 80 %}bg-danger{% elif licenses.pulseway.percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ licenses.pulseway.percentage }}%">
+                                {{ licenses.pulseway.percentage }}%
+                            </div>
+                        </div>
+                        
+                        {% if licenses.pulseway.percentage > 80 %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <strong>Warning:</strong> License usage is above 80%!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Datto License -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Datto BCDR</h5>
+                </div>
+                <div class="card-body">
+                    {% if licenses.datto.error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ licenses.datto.error }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6>License Type: <span class="badge bg-info">{{ licenses.datto.license_type }}</span></h6>
+                            <small class="text-muted">Expires: {{ licenses.datto.expiry_date }}</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h3 class="text-primary">{{ licenses.datto.total }}</h3>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-success">{{ licenses.datto.used }}</h3>
+                                <small>Used</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-warning">{{ licenses.datto.available }}</h3>
+                                <small>Available</small>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {% if licenses.datto.percentage > 80 %}bg-danger{% elif licenses.datto.percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ licenses.datto.percentage }}%">
+                                {{ licenses.datto.percentage }}%
+                            </div>
+                        </div>
+                        
+                        {% if licenses.datto.percentage > 80 %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <strong>Warning:</strong> License usage is above 80%!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row: Office 365 and Site24x7 -->
+    <div class="row">
+        <!-- Office 365 License -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Microsoft Office 365</h5>
+                    <small>Real-time API Data</small>
+                </div>
+                <div class="card-body">
+                    {% if licenses.office365.error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ licenses.office365.error }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6>License Type: <span class="badge bg-info">{{ licenses.office365.license_type }}</span></h6>
+                            <small class="text-muted">Expires: {{ licenses.office365.expiry_date }}</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h3 class="text-primary">{{ licenses.office365.total }}</h3>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-success">{{ licenses.office365.used }}</h3>
+                                <small>Used</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-warning">{{ licenses.office365.available }}</h3>
+                                <small>Available</small>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {% if licenses.office365.percentage > 80 %}bg-danger{% elif licenses.office365.percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ licenses.office365.percentage }}%">
+                                {{ licenses.office365.percentage }}%
+                            </div>
+                        </div>
+                        
+                        {% if licenses.office365.percentage > 80 %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <strong>Warning:</strong> License usage is above 80%!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Site24x7 License -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Site24x7 Monitoring</h5>
+                </div>
+                <div class="card-body">
+                    {% if licenses.site24x7.error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ licenses.site24x7.error }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <h6>License Type: <span class="badge bg-info">{{ licenses.site24x7.license_type }}</span></h6>
+                            <small class="text-muted">Expires: {{ licenses.site24x7.expiry_date }}</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <h3 class="text-primary">{{ licenses.site24x7.total }}</h3>
+                                <small>Total</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-success">{{ licenses.site24x7.used }}</h3>
+                                <small>Used</small>
+                            </div>
+                            <div class="col-4">
+                                <h3 class="text-warning">{{ licenses.site24x7.available }}</h3>
+                                <small>Available</small>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar {% if licenses.site24x7.percentage > 80 %}bg-danger{% elif licenses.site24x7.percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ licenses.site24x7.percentage }}%">
+                                {{ licenses.site24x7.percentage }}%
+                            </div>
+                        </div>
+                        
+                        {% if licenses.site24x7.percentage > 80 %}
+                            <div class="alert alert-danger mt-3 mb-0">
+                                <strong>Warning:</strong> License usage is above 80%!
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">License Configuration Management</h5>
+        </div>
+        <div class="card-body">
+            {% if user.is_superuser %}
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Total Licenses</th>
+                            <th>License Type</th>
+                            <th>Expiry Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service_key, service_data in licenses.items %}
+                        {% if service_key != 'office365' %}
+                        <tr>
+                            <td><strong>{{ service_data.service }}</strong></td>
+                            <td>
+                                <form method="POST" action="{% url 'rbac:edit_license_config' service_key %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="number" name="total_licenses" value="{{ service_data.total }}" class="form-control form-control-sm d-inline" style="width: 100px;">
+                            </td>
+                            <td>
+                                    <input type="text" name="license_type" value="{{ service_data.license_type }}" class="form-control form-control-sm" style="width: 150px;">
+                            </td>
+                            <td>
+                                    <input type="date" name="expiry_date" value="{{ service_data.expiry_date }}" class="form-control form-control-sm" style="width: 150px;">
+                            </td>
+                            <td>
+                                    <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Only administrators can edit license configurations.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">License Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Note:</strong> License usage is calculated based on:</p>
+            <ul>
+                <li><strong>ManageEngine:</strong> Active technician accounts (API proxy)</li>
+                <li><strong>Pulseway:</strong> Devices with installed agents (API proxy)</li>
+                <li><strong>Datto:</strong> Protected assets - BCDR devices + agents (API proxy)</li>
+                <li><strong>Office 365:</strong> ✅ Real-time license data from Microsoft Graph API</li>
+                <li><strong>Site24x7:</strong> Active monitors (API proxy)</li>
+            </ul>
+            <p class="mb-0"><small class="text-muted">Total license counts are configured manually except Office 365 which uses real API data. Email alerts are sent 1 month and 1 week before expiry.</small></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

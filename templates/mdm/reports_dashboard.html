@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}MDM Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                <h4 class="mb-sm-0">Reports Dashboard</h4>
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'mdm:home' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'mdm:mdm:dashboard' %}">MDM</a></li>
+                        <li class="breadcrumb-item active">Reports</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-1">
+                            <p class="text-truncate font-size-14 mb-2">Storage Report</p>
+                            <h4 class="mb-2">{{ devices_with_storage }}</h4>
+                            <p class="text-muted mb-0">Devices with storage data</p>
+                        </div>
+                        <div class="avatar-sm">
+                            <span class="avatar-title bg-light text-primary rounded-3">
+                                <i class="ri-hard-drive-line font-size-24"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'mdm:mdm:storage_report' %}" class="btn btn-sm btn-primary">View Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-1">
+                            <p class="text-truncate font-size-14 mb-2">Security Report</p>
+                            <h4 class="mb-2">{{ security_events }}</h4>
+                            <p class="text-muted mb-0">Security events</p>
+                        </div>
+                        <div class="avatar-sm">
+                            <span class="avatar-title bg-light text-warning rounded-3">
+                                <i class="ri-shield-line font-size-24"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'mdm:mdm:security_report' %}" class="btn btn-sm btn-warning">View Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-1">
+                            <p class="text-truncate font-size-14 mb-2">Apps Report</p>
+                            <h4 class="mb-2">{{ total_apps }}</h4>
+                            <p class="text-muted mb-0">Installed applications</p>
+                        </div>
+                        <div class="avatar-sm">
+                            <span class="avatar-title bg-light text-info rounded-3">
+                                <i class="ri-apps-line font-size-24"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'mdm:mdm:apps_report' %}" class="btn btn-sm btn-info">View Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="flex-1">
+                            <p class="text-truncate font-size-14 mb-2">Location Report</p>
+                            <h4 class="mb-2">{{ total_devices }}</h4>
+                            <p class="text-muted mb-0">Total devices</p>
+                        </div>
+                        <div class="avatar-sm">
+                            <span class="avatar-title bg-light text-success rounded-3">
+                                <i class="ri-map-pin-line font-size-24"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'mdm:mdm:location_report' %}" class="btn btn-sm btn-success">View Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

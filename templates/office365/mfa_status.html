@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}MFA Status - Microsoft 365{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fas fa-shield-alt text-danger me-2"></i>MFA Status Report</h1>
+      <p class="text-muted mb-0 small">Multi-Factor Authentication registration per user</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'office365:user_management' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-users-cog me-1"></i>User Management
+      </a>
+      <a href="{% url 'office365:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}{% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}{% endif %}
+
+  {% if is_demo %}
+  <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Demo mode — Office 365 credentials not configured.</div>
+  {% endif %}
+
+  {% if mfa_permission_error %}
+    {% if mfa_premium_required %}
+    <div class="alert alert-info">
+      <h5 class="alert-heading"><i class="fas fa-star me-2"></i>Azure AD Premium Required</h5>
+      <p class="mb-2">
+        The <strong>MFA Status</strong> report requires <strong>Azure AD Premium P1 or P2</strong>
+        (included in Microsoft 365 Business Premium, E3, or E5).
+      </p>
+      <p class="mb-0">
+        This tenant is on a <strong>non-premium plan</strong>. To enable MFA reporting, upgrade to
+        <strong>Microsoft 365 Business Premium</strong> or add <strong>Azure AD Premium P1</strong>
+        licences in the Microsoft Admin Center.
+      </p>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <h5 class="alert-heading"><i class="fas fa-lock me-2"></i>Permission Required</h5>
+      <p class="mb-1">Add <code>UserAuthenticationMethod.Read.All</code> (Application) in Azure Portal → App registrations → API permissions, then click <strong>Grant admin consent</strong>.</p>
+    </div>
+    {% endif %}
+  {% endif %}
+
+  <!-- Summary cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-primary">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-primary">{{ total }}</div>
+          <div class="small text-muted">Total Users</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-success">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-success">{{ mfa_registered }}</div>
+          <div class="small text-muted">MFA Registered</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-danger">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-danger">{{ mfa_not_registered }}</div>
+          <div class="small text-muted">Not Registered</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm text-center border-info">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-info">{{ mfa_percent }}%</div>
+          <div class="small text-muted">MFA Coverage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MFA coverage bar -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body py-2">
+      <div class="d-flex justify-content-between mb-1">
+        <span class="small">MFA Registration Coverage</span>
+        <span class="small fw-semibold">{{ mfa_percent }}%</span>
+      </div>
+      <div class="progress" style="height:12px;">
+        <div class="progress-bar {% if mfa_percent >= 90 %}bg-success{% elif mfa_percent >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+             style="width:{{ mfa_percent }}%"></div>
+      </div>
+      {% if mfa_percent < 100 %}
+      <div class="mt-2 text-danger small">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        <strong>{{ mfa_not_registered }}</strong> user(s) have not registered MFA — security risk.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="mb-3 d-flex gap-2">
+    <a href="?filter=all" class="btn btn-sm {% if filter_type == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All ({{ total }})</a>
+    <a href="?filter=no_mfa" class="btn btn-sm {% if filter_type == 'no_mfa' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+      No MFA ({{ mfa_not_registered }})
+    </a>
+    <a href="?filter=mfa_enabled" class="btn btn-sm {% if filter_type == 'mfa_enabled' %}btn-success{% else %}btn-outline-success{% endif %}">
+      MFA Registered ({{ mfa_registered }})
+    </a>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>User</th>
+              <th>MFA Registered</th>
+              <th>MFA Enabled</th>
+              <th>Auth Methods</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr class="{% if not u.is_registered %}table-danger{% endif %}">
+              <td>
+                <div class="fw-semibold">{{ u.display_name }}</div>
+                <small class="text-muted">{{ u.upn }}</small>
+              </td>
+              <td>
+                {% if u.is_registered %}
+                  <span class="badge bg-success"><i class="fas fa-check me-1"></i>Yes</span>
+                {% else %}
+                  <span class="badge bg-danger"><i class="fas fa-times me-1"></i>No</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_enabled %}
+                  <span class="badge bg-success"><i class="fas fa-lock me-1"></i>Enforced</span>
+                {% else %}
+                  <span class="badge bg-secondary">Not enforced</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.methods %}
+                  {% for m in u.methods %}
+                    <span class="badge bg-info text-dark me-1">{{ m }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center py-4 text-muted">No MFA data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if users.has_other_pages %}
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if users.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.previous_page_number }}&filter={{ filter_type }}">«</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ users.number }} / {{ users.paginator.num_pages }}</span></li>
+      {% if users.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ users.next_page_number }}&filter={{ filter_type }}">»</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}

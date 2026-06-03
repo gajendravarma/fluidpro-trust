@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuration Profiles — MDM Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-row td { vertical-align: middle; font-size: .87rem; }
+  .profile-row:hover { background: #f8f9ff; }
+  .platform-badge { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .status-badge   { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .type-badge     { font-size: .7rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .search-box { max-width: 280px; }
+  .api-notice { border: 1px dashed #dee2e6; background: #f8f9fa; border-radius: 8px; }
+  .profile-icon { width: 36px; height: 36px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Configuration Profiles</h4>
+      <small class="text-muted">Profiles deployed via ManageEngine MDM API</small>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+        <i class="fas fa-sync-alt me-1"></i>Refresh
+      </button>
+      <a href="{% url 'mdm:create_profile' %}" class="btn btn-sm btn-primary">
+        <i class="fas fa-plus me-1"></i>Create Profile
+      </a>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-primary bg-opacity-10 rounded-3 p-2"><i class="fas fa-cogs text-primary fs-5"></i></div>
+          <div>
+            <div class="fw-bold fs-5 text-primary">{{ api_profiles|length }}</div>
+            <div class="text-muted" style="font-size:.78rem">Total Profiles</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-success bg-opacity-10 rounded-3 p-2"><i class="fas fa-check-circle text-success fs-5"></i></div>
+          <div>
+            {% with pub=api_profiles|length %}
+            <div class="fw-bold fs-5 text-success" id="publishedCount">—</div>
+            {% endwith %}
+            <div class="text-muted" style="font-size:.78rem">Published</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-warning bg-opacity-10 rounded-3 p-2"><i class="fas fa-edit text-warning fs-5"></i></div>
+          <div>
+            <div class="fw-bold fs-5 text-warning" id="draftCount">—</div>
+            <div class="text-muted" style="font-size:.78rem">Draft</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-{% if api_available %}success{% else %}warning{% endif %} bg-opacity-10 rounded-3 p-2">
+            <i class="fas fa-plug text-{% if api_available %}success{% else %}warning{% endif %} fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-5 text-{% if api_available %}success{% else %}warning{% endif %}">
+              {% if api_available %}Live{% else %}Offline{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:.78rem">MDM API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-0" id="profileTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-api">
+        <i class="fas fa-cloud me-1 text-primary"></i>MDM API Profiles
+        <span class="badge bg-primary rounded-pill ms-1" style="font-size:.7rem">{{ api_profiles|length }}</span>
+      </button>
+    </li>
+    {% if local_profiles %}
+    <li class="nav-item">
+      <button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-local">
+        <i class="fas fa-database me-1 text-secondary"></i>Local Profiles
+        <span class="badge bg-secondary rounded-pill ms-1" style="font-size:.7rem">{{ local_profiles|length }}</span>
+      </button>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="tab-content border border-top-0 rounded-bottom bg-white shadow-sm">
+
+    <!-- ── API PROFILES TAB ── -->
+    <div class="tab-pane fade show active p-3" id="tab-api">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="fw-semibold mb-0 text-muted">Profiles from ManageEngine MDM Server</h6>
+        <input type="text" class="form-control form-control-sm search-box"
+               placeholder="Search profiles…" oninput="filterTable('apiProfileTable', this.value)">
+      </div>
+
+      {% if not api_available %}
+      <div class="api-notice p-3 mb-3 text-center">
+        <i class="fas fa-plug text-warning me-2"></i>
+        MDM API is not connected. Configure <code>MDM_API_BASE_URL</code> and <code>MDM_API_KEY</code>.
+      </div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="apiProfileTable">
+          <thead class="table-light">
+            <tr>
+              <th style="font-size:.75rem; width:260px">Profile</th>
+              <th style="font-size:.75rem">Platform</th>
+              <th style="font-size:.75rem">Type</th>
+              <th style="font-size:.75rem">Status</th>
+              <th style="font-size:.75rem" class="text-center">Devices</th>
+              <th style="font-size:.75rem" class="text-center">Groups</th>
+              <th style="font-size:.75rem">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for profile in api_profiles %}
+            <tr class="profile-row">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="profile-icon bg-primary bg-opacity-10">
+                    <i class="fas fa-cog text-primary"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">{{ profile.profile_name|default:profile.name|default:"—" }}</div>
+                    <small class="text-muted font-monospace">ID: {{ profile.profile_id|default:"—" }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% with p=profile.platform_type|default:profile.platform|default:"" %}
+                <span class="platform-badge
+                  {% if p == 'android' or p == '2' %}bg-success bg-opacity-15 text-success
+                  {% elif p == 'ios' or p == '1' %}bg-dark bg-opacity-10 text-dark
+                  {% elif p == 'windows' %}bg-primary bg-opacity-15 text-primary
+                  {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                  {% if p == 'android' or p == '2' %}<i class="fab fa-android me-1"></i>Android
+                  {% elif p == 'ios' or p == '1' %}<i class="fab fa-apple me-1"></i>iOS
+                  {% elif p == 'windows' %}<i class="fab fa-windows me-1"></i>Windows
+                  {% else %}{{ p|title|default:"—" }}{% endif %}
+                </span>
+                {% endwith %}
+              </td>
+              <td>
+                <span class="type-badge bg-info bg-opacity-15 text-info">
+                  {{ profile.profile_type|default:profile.type|default:"—"|title }}
+                </span>
+              </td>
+              <td>
+                {% with s=profile.status|default:"" %}
+                <span class="status-badge
+                  {% if s == 'published' or s == 'active' %}bg-success bg-opacity-15 text-success
+                  {% elif s == 'draft' %}bg-warning bg-opacity-15 text-warning
+                  {% elif s == 'inactive' or s == 'deleted' %}bg-danger bg-opacity-15 text-danger
+                  {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                  {{ s|title|default:"—" }}
+                </span>
+                {% endwith %}
+              </td>
+              <td class="text-center fw-semibold text-primary">
+                {{ profile.device_count|default:"—" }}
+              </td>
+              <td class="text-center fw-semibold text-info">
+                {{ profile.group_count|default:"—" }}
+              </td>
+              <td>
+                <small class="text-muted">{{ profile.created_time|default:profile.created_at|default:"—" }}</small>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="fas fa-cogs fa-2x mb-2 d-block"></i>
+                No profiles found{% if not api_available %} (API offline){% endif %}.
+                <br><a href="{% url 'mdm:create_profile' %}" class="btn btn-sm btn-primary mt-2">
+                  <i class="fas fa-plus me-1"></i>Create First Profile
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── LOCAL PROFILES TAB ── -->
+    {% if local_profiles %}
+    <div class="tab-pane fade p-3" id="tab-local">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="fw-semibold mb-0 text-muted">Locally stored profiles</h6>
+        <input type="text" class="form-control form-control-sm search-box"
+               placeholder="Search…" oninput="filterTable('localProfileTable', this.value)">
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="localProfileTable">
+          <thead class="table-light">
+            <tr>
+              <th style="font-size:.75rem">Profile Name</th>
+              <th style="font-size:.75rem">Company</th>
+              <th style="font-size:.75rem">Type</th>
+              <th style="font-size:.75rem">Status</th>
+              <th style="font-size:.75rem">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for profile in local_profiles %}
+            <tr class="profile-row">
+              <td>
+                <div class="fw-semibold">{{ profile.name }}</div>
+                <small class="text-muted">{{ profile.description|truncatechars:60 }}</small>
+              </td>
+              <td><small class="text-muted">{{ profile.mdm_customer.company.name }}</small></td>
+              <td>
+                <span class="type-badge bg-info bg-opacity-15 text-info">{{ profile.profile_type|title }}</span>
+              </td>
+              <td>
+                <span class="status-badge
+                  {% if profile.status == 'published' %}bg-success bg-opacity-15 text-success
+                  {% elif profile.status == 'draft' %}bg-warning bg-opacity-15 text-warning
+                  {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                  {{ profile.status|title }}
+                </span>
+              </td>
+              <td><small class="text-muted">{{ profile.created_at|date:"d M Y" }}</small></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div><!-- /tab-content -->
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterTable(tableId, query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Calculate published / draft counts from API profiles
+document.addEventListener('DOMContentLoaded', () => {
+  const rows = document.querySelectorAll('#apiProfileTable tbody tr');
+  let published = 0, draft = 0;
+  rows.forEach(row => {
+    const s = row.querySelector('.status-badge');
+    if (!s) return;
+    const t = s.textContent.trim().toLowerCase();
+    if (t === 'published' || t === 'active') published++;
+    else if (t === 'draft') draft++;
+  });
+  const pc = document.getElementById('publishedCount');
+  const dc = document.getElementById('draftCount');
+  if (pc) pc.textContent = published || '0';
+  if (dc) dc.textContent = draft || '0';
+});
+</script>
+{% endblock %}

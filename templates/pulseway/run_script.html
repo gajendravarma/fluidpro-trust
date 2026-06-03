@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Run Script - Pulseway{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-9">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="fas fa-code text-warning me-2"></i>Run Script on Device</h3>
+        <a href="{% url 'pulseway:dashboard' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if api_not_supported %}
+      <div class="alert alert-warning border-warning shadow-sm">
+        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Pulseway API Does Not Support Ad-Hoc Script Execution</h5>
+        <p class="mb-2">
+          The Pulseway REST API (v3) does not allow creating or running automation tasks directly from external
+          applications. To run your script on <strong>{{ submitted_device }}</strong>, follow these steps:
+        </p>
+        <ol class="mb-3">
+          <li>Go to the <strong>Pulseway web console</strong> and create an Automation Task with the script content below.</li>
+          <li>Return to the <a href="{% url 'pulseway:automation_tasks' %}" class="alert-link">Automation Tasks page</a> here.</li>
+          <li>Use the <strong>Run</strong> button on that task and select <strong>{{ submitted_device }}</strong> as the target device.</li>
+        </ol>
+        {% if submitted_script %}
+        <div class="mb-2">
+          <strong>Script type:</strong> <code>{{ submitted_type }}</code>
+        </div>
+        <label class="fw-semibold mb-1">Your script (copy this into Pulseway):</label>
+        <pre class="bg-dark text-light p-3 rounded" style="white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">{{ submitted_script }}</pre>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Device selector -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Target Device <span class="text-danger">*</span></label>
+              <div class="input-group mb-1">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="deviceSearch" class="form-control"
+                       placeholder="Search by device name or organisation…" autocomplete="off">
+              </div>
+              <select name="device_id" id="deviceSelect" class="form-select" required size="6"
+                      style="min-height:160px;" onchange="onDevicePick(this)">
+                {% for d in devices %}
+                <option value="{{ d.device_id }}"
+                        data-name="{{ d.device_name }}"
+                        data-org="{{ d.organization_name }}"
+                        data-status="{{ d.status }}"
+                        {% if d.device_id == preselect_id %}selected{% endif %}>
+                  {{ d.device_name }}{% if d.organization_name %} — {{ d.organization_name }}{% endif %}
+                  {% if d.status == 'offline' %}[Offline]{% endif %}
+                </option>
+                {% empty %}
+                <option disabled>No devices available</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="device_name" id="deviceNameHidden">
+              <div class="form-text" id="deviceHint">
+                Select a device above. Offline devices will still receive the script when they come online.
+              </div>
+            </div>
+
+            <!-- Script type -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Script Type <span class="text-danger">*</span></label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="script_type" id="typePowershell"
+                         value="powershell" checked>
+                  <label class="form-check-label" for="typePowershell">
+                    <i class="fab fa-windows me-1"></i>PowerShell
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="script_type" id="typeBatch" value="batch">
+                  <label class="form-check-label" for="typeBatch">
+                    <i class="fas fa-terminal me-1"></i>Batch (.cmd)
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="script_type" id="typeBash" value="bash">
+                  <label class="form-check-label" for="typeBash">
+                    <i class="fab fa-linux me-1"></i>Bash
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Script content -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Script Content <span class="text-danger">*</span></label>
+              <textarea name="script_content" id="scriptContent" class="form-control font-monospace"
+                        rows="12" required
+                        placeholder="# PowerShell example&#10;Get-Process | Select-Object Name, CPU | Sort-Object CPU -Descending | Select-Object -First 10&#10;&#10;# or check disk space:&#10;Get-PSDrive -PSProvider FileSystem | Select-Object Name, Used, Free"></textarea>
+              <div class="form-text">Script runs with administrator/SYSTEM privileges on the device.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-warning" id="runBtn">
+                <i class="fas fa-play me-1"></i>Execute Script
+              </button>
+              <a href="{% url 'pulseway:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const allOptions = Array.from(document.getElementById('deviceSelect').options);
+
+document.getElementById('deviceSearch').addEventListener('input', function () {
+  const term = this.value.toLowerCase();
+  const sel = document.getElementById('deviceSelect');
+  sel.innerHTML = '';
+  const matched = allOptions.filter(o =>
+    o.textContent.toLowerCase().includes(term) || o.dataset.org?.toLowerCase().includes(term)
+  );
+  if (matched.length === 0) {
+    const opt = document.createElement('option');
+    opt.disabled = true;
+    opt.textContent = 'No matching devices';
+    sel.appendChild(opt);
+  } else {
+    matched.forEach(o => sel.appendChild(o));
+  }
+});
+
+function onDevicePick(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('deviceNameHidden').value = opt.dataset.name || opt.value;
+  const status = opt.dataset.status || '';
+  const hint = document.getElementById('deviceHint');
+  if (status === 'offline') {
+    hint.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Device is <strong>offline</strong> — script will be queued and sent when it reconnects.</span>';
+  } else {
+    hint.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Device is <strong>online</strong> — script will execute immediately.</span>';
+  }
+}
+
+// Trigger hint for pre-selected device
+const sel = document.getElementById('deviceSelect');
+if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
+  onDevicePick(sel);
+}
+</script>
+{% endblock %}
